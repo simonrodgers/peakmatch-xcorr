@@ -1,0 +1,28 @@
+Peak-matched sampled efficient cross-correlation of time series
+---------------------------------------------------------------
+
+
+
+process:
+- create two directories, for full and sample datasets
+- put all events into full 
+- take small (~500-1000) random sample from full into sample
+ 	(ls /path/to/full | shuf | head -500 | xargs -I xx cp /path/to/full/xx /path/to/sample)
+
+- edit xcorr.conf, add locations of dataset directories
+
+- initial parameter refinement: first set mode=ANALYSE, run, observe output
+
+- change parameter in config file until performance / accuracy tradeoff is acceptable
+
+- set mode=PEAKMATCH, run
+
+- set mode=POSTPROCESS, run
+
+compilation:
+mvn assembly:single
+
+usage:
+java -Xmx2G -jar target/peakmatch-jar-with-dependencies.jar
+
+(change 2G (2Gb) in -Xmx2G to whatever memory limits you want to give the process)
