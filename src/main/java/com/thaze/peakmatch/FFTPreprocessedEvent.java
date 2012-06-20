@@ -16,9 +16,11 @@ public class FFTPreprocessedEvent extends Event {
 	public FFTPreprocessedEvent(File file, EventProcessorConf conf) throws EventException {
 		super(file, conf);
 
+		// precalculation of an event's forwards and reverse FFT transforms speeds up subsequent 
+		
 		int padded_len = Util.nextPowerOfTwo(length() * 2);
 
-		// zero pad
+		// zero pad to next power of two
 		double[] forwards = Arrays.copyOf(getD(), padded_len);
 
 		// reverse and then zero pad

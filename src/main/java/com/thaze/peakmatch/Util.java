@@ -11,7 +11,7 @@ import org.joda.time.format.PeriodFormat;
 
 public class Util {
 	
-	public static NumberFormat NF = new DecimalFormat("#.###");
+	public final static NumberFormat NF = new DecimalFormat("#.###");
 
 	public static String periodToString(long ms){
 		return PeriodFormat.getDefault().print(new Period(ms, ISOChronology.getInstanceUTC()));
@@ -23,22 +23,19 @@ public class Util {
 
 	public static double[] crop(double[] a) {
 
+		// TODO parameterise peak range
+		// find peak inside 35 -> 55 sec
+		// 100 points = 1 second
+		double peak = -1;
 		int peakIndex = 0;
-
-//		if (false) { // hardcoded region for debugging
-//			peakIndex = 4200;
-//		} else {
-			// find peak inside 35 -> 55 sec
-			// 100 points = 1 second
-			double peak = -1;
-			for (int ii = 35 * 100; ii < 55 * 100; ii++) {
-				if (Math.abs(a[ii]) > peak) {
-					peak = a[ii];
-					peakIndex = ii;
-				}
+		for (int ii = 35 * 100; ii < 55 * 100; ii++) {
+			if (Math.abs(a[ii]) > peak) {
+				peak = a[ii];
+				peakIndex = ii;
 			}
-//		}
+		}
 
+		// TODO parameterise window positions
 		// return new int[] from -7 to +10 sec of peak
 		double[] r = new double[100 * 17];
 		for (int ii = 0; ii < r.length; ii++) {
@@ -52,13 +49,13 @@ public class Util {
 	
 	public static double[] fftXCorr(FFTPreprocessedEvent a, FFTPreprocessedEvent b) {
 
-		Complex[] product = new Complex[a.getForwardFFT().length];
+		final Complex[] product = new Complex[a.getForwardFFT().length];
 		for (int ii = 0; ii < a.getForwardFFT().length; ii++)
 			product[ii] = a.getForwardFFT()[ii].multiply(b.getReverseFFT()[ii]);
 
-		Complex[] inverse = fft.inversetransform(product);
+		final Complex[] inverse = fft.inversetransform(product);
 
-		double[] reals = new double[inverse.length];
+		final double[] reals = new double[inverse.length];
 		int ii = 0;
 		for (Complex c : inverse)
 			reals[ii++] = c.getReal();

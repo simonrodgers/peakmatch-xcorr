@@ -1,6 +1,7 @@
 Peak-matched sampled efficient cross-correlation of time series
 ---------------------------------------------------------------
 
+// TODO overall explanation
 
 
 process:
@@ -16,8 +17,14 @@ process:
 - change parameter in config file until performance / accuracy tradeoff is acceptable
 
 - set mode=PEAKMATCH, run
+// TODO explanation
 
 - set mode=POSTPROCESS, run
+// TODO explanation
+
+prerequisites:
+java
+maven2
 
 compilation:
 mvn assembly:single
