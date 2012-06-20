@@ -5,10 +5,17 @@ import java.text.NumberFormat;
 
 import org.apache.commons.math.complex.Complex;
 import org.apache.commons.math.transform.FastFourierTransformer;
+import org.joda.time.Period;
+import org.joda.time.chrono.ISOChronology;
+import org.joda.time.format.PeriodFormat;
 
 public class Util {
 	
 	public static NumberFormat NF = new DecimalFormat("#.###");
+
+	public static String periodToString(long ms){
+		return PeriodFormat.getDefault().print(new Period(ms, ISOChronology.getInstanceUTC()));
+	}
 
 	public static int nextPowerOfTwo(int x) {
 		return (int) Math.pow(2, Math.ceil(Math.log(x) / Math.log(2)));

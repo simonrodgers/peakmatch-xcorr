@@ -10,29 +10,29 @@ public class EventProcessorConf {
 	public static Builder newBuilder (Properties props) throws EventException {
 		Builder b = new Builder();
 		
-		File dataset = new File(props.getProperty(				"event.dataset.full"));
+		File dataset = new File(props.getProperty(				"dataset.full"));
 		if (!dataset.exists() || !dataset.isDirectory() || dataset.listFiles().length == 0)
-			throw new EventException("bad or empty dataset directory " + dataset);
+			throw new EventException("non-existent or empty dataset directory " + dataset);
 		b.setDataset(dataset);
 	
-		File sampledataset = new File(props.getProperty(		"event.dataset.sample"));
+		File sampledataset = new File(props.getProperty(		"dataset.sample"));
 		if (!sampledataset.exists() || !sampledataset.isDirectory() || sampledataset.listFiles().length == 0)
-			throw new EventException("bad or empty sample dataset directory " + sampledataset);
+			throw new EventException("non-existent or empty sample dataset directory " + sampledataset);
 		b.setSampledataset(sampledataset);
 		
-		b.setTopNPeaksToMatch(getInt(props, 					"event.top-n-peaks"));
-		b.setSamplingStride(getInt(props, 						"event.sampling-stride"));
-		b.setTopAmplitudeThreshold(getDouble(props, 			"event.top-amplitude-threshold"));
-		b.setCandidateThreshold(getDouble(props, 				"event.candidate-threshold"));
-		b.setFinalThreshold(getDouble(props,					"event.final-threshold"));
-		b.setExpectedFileLineCount(getInt(props,				"event.expected-file-line-count"));
+		b.setTopNPeaksToMatch(getInt(props, 					"top-n-peaks"));
+		b.setSamplingStride(getInt(props, 						"sampling-stride"));
+		b.setTopAmplitudeThreshold(getDouble(props, 			"top-amplitude-threshold"));
+		b.setCandidateThreshold(getDouble(props, 				"candidate-threshold"));
+		b.setFinalThreshold(getDouble(props,					"final-threshold"));
+		b.setExpectedFileLineCount(getInt(props,				"expected-file-line-count"));
 		
 		try{
-			b.setMode(Mode.valueOf(props.getProperty(				"event.mode")));
+			b.setMode(Mode.valueOf(props.getProperty(			"mode")));
 		} catch (IllegalArgumentException e){
-			throw new EventException("invalid mode value " + props.getProperty("event.mode"));
+			throw new EventException("invalid mode value " + props.getProperty("mode"));
 		}
-		b.setVerbose(Boolean.parseBoolean(props.getProperty(	"event.verbose")));
+		b.setVerbose(Boolean.parseBoolean(props.getProperty(	"verbose")));
 		
 		return b;
 	}

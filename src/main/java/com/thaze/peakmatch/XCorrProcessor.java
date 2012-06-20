@@ -6,24 +6,17 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 /**
- * params from conf file
- * 	- full data set directory
- * 	- sampling data set directory
- * 	- top_n_peak integer
- * 	- amp_sampling integer
- * 	- top_amp_threshold double
- * 	- candidate_threshold double
  * 
  * steps:
  * 	1 process sample directory with full FFT xcorr process, store results to disk
@@ -48,18 +41,12 @@ public class XCorrProcessor {
 		_conf = EventProcessorConf.newBuilder(getProps()).build();
 	}
 
-//	private static void usage() {
-//		System.out.println("usage: java xcorr.jar <mode>");
-//		System.out.println("	mode: 'analyse' - run on samples, analyse output accuracy and performance");
-//		System.out.println("	mode: 'pm' - run PM xcorr process on full data set");
-//		System.out.println("	mode: 'postprocess' - run FFT xcorr process on PM candidates");
-//		System.exit(1);
-//	}
-	
 	public static void main(String[] args) {
 		
+		System.out.println();
+		
 		long t0 = System.currentTimeMillis();
-		System.out.println("==== Peak-Matched Sampled Brute Force X-Correlation ===");
+		System.out.println("*** Peak-Matched Sampled Brute Force X-Correlation ***");
 		
 		try{
 			XCorrProcessor p = new XCorrProcessor();
@@ -70,7 +57,7 @@ public class XCorrProcessor {
 			switch (p._conf.getMode()){
 			case ANALYSE:
 				p.analyseAccuracy();
-//				p.analysePerformance();	
+				p.analysePerformance();
 			break; case PEAKMATCH:
 				// TODO
 			break; case POSTPROCESS:
@@ -82,7 +69,7 @@ public class XCorrProcessor {
 				e.printStackTrace();
 		}
 		
-		System.out.println("==== done [" + (System.currentTimeMillis()-t0) + " ms] ===");
+		System.out.println("*** done [" + (System.currentTimeMillis()-t0) + " ms] ***");
 	}
 	
 	private static Properties getProps() throws EventException{
@@ -102,16 +89,16 @@ public class XCorrProcessor {
 
 	private void analyseAccuracy() throws EventException {
 		List<FFTPreprocessedEvent> events = loadSampleEvents();
-		System.out.println("loaded " + events.size() + " sample events");
 		System.out.println("found " + countAllEvents() + " full events");
 		
 		Map<String, Double> full = loadSampleXCorr(events);
 		Map<String, Double> fullAboveThreshold = reduceToFinalThreshold(full);
 		
-		Map<String, Double> rejections = new HashMap<String, Double>();
+		Map<String, Double> rejections = Maps.newHashMap();
 		Map<String, Double> candidates = generateCandidateXcorr(events, rejections);
 		
-		System.out.println("=== Accuracy analysis ====");
+		System.out.println();
+		System.out.println("*** Accuracy analysis ***");
 		System.out.println(events.size() + " events sampled -> " + events.size()*events.size()/2 + " distinct pairs");
 		System.out.println(fullAboveThreshold.size() + " full XCorr event pairs above final threshold");
 		System.out.println(candidates.size() + " candidates found above candidate threshold");
@@ -120,9 +107,10 @@ public class XCorrProcessor {
 			System.out.println("no matches found in full xcorr");
 		else {
 		
+			System.out.println();
 			System.out.println("===  false positives ===");
 			
-			Set<String> falsePositives = new HashSet<String>(candidates.keySet());
+			Set<String> falsePositives = Sets.newHashSet(candidates.keySet());
 			falsePositives.removeAll(fullAboveThreshold.keySet());
 			System.out.println(falsePositives.size() + " (" + 100*falsePositives.size()/fullAboveThreshold.size() + "% of full) false positives (higher = more post-process required)");
 			
@@ -131,9 +119,10 @@ public class XCorrProcessor {
 					System.out.println(fp + "\t candidate xcorr: " + Util.NF.format(candidates.get(fp)) + ", real xcorr: " + full.get(fp));
 			}
 
+			System.out.println();
 			System.out.println("===  false negatives ===");
 			
-			Set<String> falseNegatives = new HashSet<String>(fullAboveThreshold.keySet());
+			Set<String> falseNegatives = Sets.newHashSet(fullAboveThreshold.keySet());
 			falseNegatives.removeAll(candidates.keySet());
 			
 			System.out.println(falseNegatives.size() + " (" + 100*falseNegatives.size()/fullAboveThreshold.size() + "% of full) false negatives (higher = more missed events)");
@@ -141,41 +130,107 @@ public class XCorrProcessor {
 				for (String fn: falseNegatives)
 					System.out.println(fn + "\t real xcorr: " + fullAboveThreshold.get(fn) + ", candidate xcorr: " + rejections.get(fn));
 			}
-				
-			
 		}
 
-		System.out.println("=== Accuracy analysis completed ====");
+		System.out.println();
+		System.out.println("*** Accuracy analysis completed ***");
 	}
 
-//	private void analysePerformance() throws EventException {
-//		List<FFTPreprocessedEvent> events = loadSampleEvents();
-//		
-//		long t0 = System.currentTimeMillis();
-//		Map<String, Double> candidates = generateCandidateXcorr(events, null);
-//		System.out.println(); // timing of PM, extrapolate to all event etc countAllEvents()
-//		
-//		Map<String, Double> finalResults = fullXCorrPostProcess(candidates, events);
-//		
-//		System.out.println(); // TODO timing of postprocess, extrapolate to all event etc countAllEvents()
-//	}
-	
-	
-	private Map<String, Double> reduceToFinalThreshold(Map<String, Double> fullXcorr) {
+	private void analysePerformance() throws EventException {
+		List<FFTPreprocessedEvent> events = loadSampleEvents();
 		
-		Map<String, Double> ret = new HashMap<String, Double>();
+		System.out.println();
+		System.out.println("*** Performance analysis ***");
 		
-		for (Map.Entry<String, Double> e: fullXcorr.entrySet()){
-			if (e.getValue() >= _conf.getFinalThreshold())
-				ret.put(e.getKey(), e.getValue());
+		Map<String, Double> candidates;
+		
+		final int samplePairs = events.size()*events.size()/2;
+		final long allPairs = countAllEvents()*countAllEvents()/2;
+		
+		long extrapolatedForAllMS;
+		
+		{
+			System.out.println();
+			System.out.println("=== Peakmatch phase ===");
+			
+			long t0 = System.currentTimeMillis();
+			candidates = generateCandidateXcorr(events, null);
+			long tPM = System.currentTimeMillis()-t0;
+			
+			int pairs = events.size()*events.size()/2;
+			long eachMicrosec = 1000*tPM/pairs;
+			long perSec = 1000000 / eachMicrosec;
+			extrapolatedForAllMS = allPairs * eachMicrosec / 1000;
+			
+			System.out.println(events.size() + " events sampled -> " + pairs + " distinct pairs");
+			System.out.println(tPM + " ms, " + eachMicrosec + "μs each, " + perSec + "/sec");
+			
+			System.out.println("PMSBF method - extrapolation to all events (" + allPairs + " distinct pairs of " + countAllEvents() + " events): " + Util.periodToString(extrapolatedForAllMS));
 		}
-		return ret;
+		
+		{
+			System.out.println();
+			System.out.println("=== Postprocess phase ===");
+		
+			long t0 = System.currentTimeMillis();
+			Map<String, Double> finalMatches = fullXCorrPostProcess(candidates, events);
+			long tPostProcess = System.currentTimeMillis()-t0;
+			
+			long eachMicrosec = 1000*tPostProcess/candidates.size();
+			long perSec = 1000000 / eachMicrosec;
+			long multiple = samplePairs / candidates.size();
+			long extrapolatedNaiveBFForAllMS = allPairs * eachMicrosec / 1000;
+			long extrapolatedPMForAllMS = extrapolatedNaiveBFForAllMS / multiple;
+			
+			System.out.println(candidates.size() + " pairs post-processed with full FFT xcorr -> " + finalMatches.size() + " final matches");
+			System.out.println("1 / " + multiple + " of entire eventpair space necessary to full xcorr");
+			System.out.println(tPostProcess + " ms, " + eachMicrosec + "μs each, " + perSec + "/sec");
+			System.out.println("extrapolation to all events (" + allPairs + " distinct pairs of " + countAllEvents() + " events): " + Util.periodToString(extrapolatedPMForAllMS));
+			
+			long totalPMExtrapolation = extrapolatedPMForAllMS + extrapolatedForAllMS;
+			
+			System.out.println();
+			System.out.println("total PM + postprocess extrapolation: " + Util.periodToString(totalPMExtrapolation));
+			
+			System.out.println();
+			System.out.println("full naive brute force for comparison - extrapolation to all events: " + Util.periodToString(extrapolatedNaiveBFForAllMS));
+		}
+		
+		
+		
+		System.out.println();
+		System.out.println("*** Performance analysis completed ***");
+	}
+	
+	private Map<String, Double> fullXCorrPostProcess(Map<String, Double> candidates, List<FFTPreprocessedEvent> events) {
+	
+		Map<String, Double> finalMatches = Maps.newHashMap();
+		
+		for (int ii = 0; ii < events.size(); ii++) {
+			final FFTPreprocessedEvent a = events.get(ii);
+
+			for (int jj = ii+1; jj < events.size(); jj++) {
+				final FFTPreprocessedEvent b = events.get(jj);
+				
+				String key = new EventPair(a, b).key; 
+				if (!candidates.containsKey(key))
+					continue;
+				
+				double[] xcorr = Util.fftXCorr(a, b);
+				double best = Util.getHighest(xcorr);
+				
+				if (best > _conf.getFinalThreshold())
+					finalMatches.put(key, best);
+			}
+		}
+		
+		return finalMatches;
 	}
 
 	// peak-matching sampled brute force xcorrelation estimation
 	private Map<String, Double> generateCandidateXcorr(List<? extends Event> events, Map<String, Double> rejections) {
 		
-		Map<String, Double> candidates = new HashMap<String, Double>();
+		Map<String, Double> candidates = Maps.newHashMap();
 		
 		for (int ii = 0; ii < events.size(); ii++) {
 			final Event a = events.get(ii);
@@ -195,6 +250,16 @@ public class XCorrProcessor {
 			}
 		}
 		return candidates;
+	}
+	
+
+	private Map<String, Double> reduceToFinalThreshold(Map<String, Double> fullXcorr) {
+		return Maps.filterValues(fullXcorr, new Predicate<Double>() {
+			@Override
+			public boolean apply(Double value) {
+				return value >= _conf.getFinalThreshold();
+			}
+		});
 	}
 	
 	private double xcorrSpecificOffset(Event a, Event b, int[] aOffsets, int[] bOffsets) {
@@ -236,15 +301,14 @@ public class XCorrProcessor {
 
 	private Map<String, Double> loadSampleXCorr(List<FFTPreprocessedEvent> events) throws EventException {
 		
-		Map<String, Double> samples = new HashMap<String, Double>();
+		Map<String, Double> samples = Maps.newHashMap();
 		
 		// all event pair keys that we want to examine
-		Set<String> keys = new HashSet<String>();
+		Set<String> keys = Sets.newHashSet();
 		for (Event a: events){
 			for (Event b: events){
-				if (a.equals(b))
-					continue;
-				keys.add(new EventPair(a, b).key);
+				if (!a.equals(b))
+					keys.add(new EventPair(a, b).key);
 			}
 		}
 		
@@ -312,9 +376,10 @@ public class XCorrProcessor {
 				long tMS = System.currentTimeMillis()-t0;
 				long eachMicrosec = 1000*tMS/count;
 				long perSec = 1000000 / eachMicrosec;
-				long extrapolatedForAll = countAllEvents()*countAllEvents()/2 * eachMicrosec;
-				System.out.println("generated and cached " + count + " full FFT xcorr [" + tMS + " ms, " + eachMicrosec*1000 + "μs each, " + perSec + "/sec ]");
-				System.out.println("extrapolation to full FFT for all pairs for " + countAllEvents() + " events: " + extrapolatedForAll / 1000000 + " sec");
+				long allPairs = countAllEvents()*countAllEvents()/2;
+				long extrapolatedForAllMS = allPairs * eachMicrosec / 1000;
+				System.out.println("generated and cached " + count + " full FFT xcorr: " + tMS/1000 + " sec, " + eachMicrosec + "μs each, " + perSec + "/sec");
+				System.out.println("extrapolation to full FFT xcorr for " + allPairs + " distinct pairs of " + countAllEvents() + " events: " + Util.periodToString(extrapolatedForAllMS));
 				System.out.println("(delete file " + XCORR_SAVE_FILE + " to repeat)");
 			} catch (IOException e) {
 				throw new EventException("error writing new xcorr list", e);
@@ -332,7 +397,9 @@ public class XCorrProcessor {
 	
 	private List<Event> loadAllEvents() throws EventException {
 		
-		List<Event> data = new ArrayList<Event>();
+		System.out.println("loading events ...");
+		
+		List<Event> data = Lists.newArrayList();
 		boolean fail=false;
 		for (File f : Lists.newArrayList(_conf.getSampledataset().listFiles())){
 			try{
@@ -345,13 +412,17 @@ public class XCorrProcessor {
 		
 		if (fail)
 			throw new EventException("not all files validated");
+		
+		System.out.println("loaded " + data.size() + " events");
 
 		return data;
 	}
 
 	private List<FFTPreprocessedEvent> loadSampleEvents() throws EventException {
 		
-		List<FFTPreprocessedEvent> data = new ArrayList<FFTPreprocessedEvent>();
+		System.out.println("loading sample events ...");
+		
+		List<FFTPreprocessedEvent> data = Lists.newArrayList();
 		boolean fail=false;
 		for (File f : Lists.newArrayList(_conf.getSampledataset().listFiles())){
 			try{
@@ -366,7 +437,8 @@ public class XCorrProcessor {
 			throw new EventException("not all files validated");
 		
 		
-
+		System.out.println("loaded " + data.size() + " sample events");
+		
 		return data;
 	}
 }

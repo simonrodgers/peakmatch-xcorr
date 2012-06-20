@@ -13,10 +13,10 @@ import org.apache.commons.lang.ArrayUtils;
 
 public class Event {
 	private final double[] _d;
-	private final double _rms;
+//	private final double _rms;
 	final String _filename;
 
-	private final int[] orderedSpatialPeaks;
+//	private final int[] orderedSpatialPeaks;
 	private final int[] maxSpatialPeaks;
 	private final int[] minSpatialPeaks;
 
@@ -57,14 +57,14 @@ public class Event {
 		double ms = 0;
 		for (double i : _d)
 			ms += i * i;
-		_rms = Math.sqrt(ms);
+		double rms = Math.sqrt(ms);
 
 		// unnormalisedAmps = new int[_d.length];
 
 		// normalise vector
 		for (int ii = 0; ii < _d.length; ii++) {
 			// unnormalisedAmps[ii] = (int)d[ii];
-			_d[ii] /= _rms;
+			_d[ii] /= rms;
 		}
 
 		List<Tuple<Integer, Double>> aPeaks = new ArrayList<Tuple<Integer, Double>>();
@@ -96,7 +96,7 @@ public class Event {
 		_maxPeak = aPeaks.get(0).getSecond();
 		_minPeak = aPeaks.get(aPeaks.size() - 1).getSecond();
 
-		orderedSpatialPeaks = new int[aPeaks.size()];
+//		orderedSpatialPeaks = new int[aPeaks.size()];
 		maxSpatialPeaks = new int[Math.min(conf.getTopNPeaksToMatch(), aPeaks.size())];
 		minSpatialPeaks = new int[Math.min(conf.getTopNPeaksToMatch(), aPeaks.size())];
 
@@ -108,9 +108,9 @@ public class Event {
 			minSpatialPeaks[ii] = aPeaks.get(aPeaks.size() - ii - 1).getFirst();
 		}
 
-		for (int ii = 0; ii < orderedSpatialPeaks.length; ii++) {
-			orderedSpatialPeaks[ii] = aPeaks.get(ii).getFirst();
-		}
+//		for (int ii = 0; ii < orderedSpatialPeaks.length; ii++) {
+//			orderedSpatialPeaks[ii] = aPeaks.get(ii).getFirst();
+//		}
 
 		List<Integer> t = new ArrayList<Integer>();
 		for (int ii = 0; ii < _d.length; ii++) {
@@ -158,17 +158,17 @@ public class Event {
 		return _d;
 	}
 
-	public double getRMS() {
-		return _rms;
-	}
+//	public double getRMS() {
+//		return _rms;
+//	}
 
 	public String getFilename() {
 		return _filename;
 	}
 
-	public int[] getOrderedSpatialPeaks() {
-		return orderedSpatialPeaks;
-	}
+//	public int[] getOrderedSpatialPeaks() {
+//		return orderedSpatialPeaks;
+//	}
 
 	public int[] getMaxSpatialPeaks() {
 		return maxSpatialPeaks;
