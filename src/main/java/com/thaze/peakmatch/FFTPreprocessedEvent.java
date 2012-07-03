@@ -11,13 +11,12 @@ public class FFTPreprocessedEvent extends Event {
 
 	private final Complex[] forwards_fft;
 	private final Complex[] reverse_fft;
-	private final int _peakFreq;
+//	private final int _peakFreq;
 	
 	public FFTPreprocessedEvent(File file, EventProcessorConf conf) throws EventException {
 		super(file, conf);
 
-		// precalculation of an event's forwards and reverse FFT transforms speeds up subsequent 
-		
+		// precalculation of an event's forwards and reverse FFT transforms speeds up O(N^2) xcorr
 		int padded_len = Util.nextPowerOfTwo(length() * 2);
 
 		// zero pad to next power of two
@@ -31,15 +30,15 @@ public class FFTPreprocessedEvent extends Event {
 		forwards_fft = Util.FFTtransform(forwards);
 		reverse_fft = Util.FFTtransform(reverse);
 		
-		int peakFreq=0;
-		double peakAbs=0;
-		for (int ii=0; ii<getForwardFFT().length; ii++){
-			if (getForwardFFT()[ii].abs() > peakAbs){
-				peakAbs = getForwardFFT()[ii].abs();
-				peakFreq = ii;
-			}
-		}
-		_peakFreq = peakFreq;
+//		int peakFreq=0;
+//		double peakAbs=0;
+//		for (int ii=0; ii<getForwardFFT().length; ii++){
+//			if (getForwardFFT()[ii].abs() > peakAbs){
+//				peakAbs = getForwardFFT()[ii].abs();
+//				peakFreq = ii;
+//			}
+//		}
+//		_peakFreq = peakFreq;
 	}
 
 	public Complex[] getForwardFFT() {
@@ -50,7 +49,7 @@ public class FFTPreprocessedEvent extends Event {
 		return reverse_fft;
 	}
 
-	public int getPeakFreq() {
-		return _peakFreq;
-	}
+//	public int getPeakFreq() {
+//		return _peakFreq;
+//	}
 }

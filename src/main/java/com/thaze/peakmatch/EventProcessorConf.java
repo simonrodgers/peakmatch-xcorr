@@ -30,7 +30,7 @@ public class EventProcessorConf {
 		try{
 			b.setMode(Mode.valueOf(props.getProperty(			"mode")));
 		} catch (IllegalArgumentException e){
-			throw new EventException("invalid mode value " + props.getProperty("mode"));
+			throw new EventException("invalid mode value '" + props.getProperty("mode") + "'");
 		}
 		b.setVerbose(Boolean.parseBoolean(props.getProperty(	"verbose")));
 		
@@ -231,6 +231,10 @@ public class EventProcessorConf {
 	}
 	public Mode getMode() {
 		return _builder.getMode();
+	}
+	
+	public int countAllEvents() {
+		return getDataset().listFiles().length;
 	}
 	
 	@Override

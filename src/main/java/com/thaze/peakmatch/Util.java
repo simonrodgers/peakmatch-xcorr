@@ -20,6 +20,12 @@ public class Util {
 	public static int nextPowerOfTwo(int x) {
 		return (int) Math.pow(2, Math.ceil(Math.log(x) / Math.log(2)));
 	}
+	
+	public static String memoryUsage(){
+		String totalMem = Runtime.getRuntime().totalMemory() / 1024/1024 + "Mb";
+		String maxMem = Runtime.getRuntime().maxMemory() / 1024/1024 + "Mb";
+		return "Memory: " + totalMem + " / " + maxMem;
+	}
 
 	public static double[] crop(double[] a) {
 
@@ -36,7 +42,7 @@ public class Util {
 		}
 
 		// TODO parameterise window positions
-		// return new int[] from -7 to +10 sec of peak
+		// return from -7 to +10 sec of peak
 		double[] r = new double[100 * 17];
 		for (int ii = 0; ii < r.length; ii++) {
 			r[ii] = a[ii + peakIndex - 7 * 100];

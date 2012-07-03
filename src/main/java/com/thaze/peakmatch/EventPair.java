@@ -19,7 +19,7 @@ public class EventPair implements Comparable<EventPair>{
 			_e2=e1;
 		}
 		
-		key = _e1._filename + " - " + _e2._filename;
+		key = _e1._filename + "\t" + _e2._filename;
 	}
 	
 	@Override
