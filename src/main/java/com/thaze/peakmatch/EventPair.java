@@ -6,11 +6,11 @@ public class EventPair implements Comparable<EventPair>{
 	final String key;
 	public EventPair(Event e1, Event e2) {
 
-		if (e1 == e2 || e1._filename.equals(e2._filename))
+		if (e1 == e2 || e1.getName().equals(e2.getName()))
 			throw new IllegalArgumentException("EventPair cannot be created from same events");
 
 		// store events in consistent order, irrespective of the construction order
-		if (e1._filename.compareTo(e2._filename) < 0){
+		if (e1.getName().compareTo(e2.getName()) < 0){
 			_e1=e1;
 			_e2=e2;
 			
@@ -19,7 +19,7 @@ public class EventPair implements Comparable<EventPair>{
 			_e2=e1;
 		}
 		
-		key = _e1._filename + "\t" + _e2._filename;
+		key = _e1.getName() + "\t" + _e2.getName();
 	}
 	
 	@Override

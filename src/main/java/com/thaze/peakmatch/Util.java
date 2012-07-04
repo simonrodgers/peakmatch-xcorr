@@ -53,6 +53,10 @@ public class Util {
 	
 	private static final FastFourierTransformer fft = new FastFourierTransformer();
 	
+	public static double[] fftXCorr(Event a, Event b) {
+		return fftXCorr(new FFTPreprocessedEvent(a), new FFTPreprocessedEvent(b));
+	}
+	
 	public static double[] fftXCorr(FFTPreprocessedEvent a, FFTPreprocessedEvent b) {
 
 		final Complex[] product = new Complex[a.getForwardFFT().length];

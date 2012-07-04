@@ -15,7 +15,7 @@ public class PeakMatchProcessor {
 	}
 	
 	// peak-matching sampled brute force xcorrelation estimation
-	public void generateCandidateXcorr(List<? extends Event> events, EventPairCollector successCollector, EventPairCollector rejectionCollector) throws EventException{
+	public void peakmatchCandidates(List<Event> events, EventPairCollector successCollector, EventPairCollector rejectionCollector) throws EventException{
 
 		for (int ii = 0; ii < events.size(); ii++) {
 			final Event a = events.get(ii);
@@ -23,8 +23,8 @@ public class PeakMatchProcessor {
 			for (int jj = ii+1; jj < events.size(); jj++) {
 				final Event b = events.get(jj);
 				
-				double bestPositivePeakMatchXCorr = xcorrSpecificOffset(a, b, a.getMaxSpatialPeaks(), b.getMaxSpatialPeaks());
-				double bestNegativePeakMatchXCorr = xcorrSpecificOffset(a, b, a.getMinSpatialPeaks(), b.getMinSpatialPeaks());
+				double bestPositivePeakMatchXCorr = peakmatchSpecificOffset(a, b, a.getMaxSpatialPeaks(), b.getMaxSpatialPeaks());
+				double bestNegativePeakMatchXCorr = peakmatchSpecificOffset(a, b, a.getMinSpatialPeaks(), b.getMinSpatialPeaks());
 				
 				double best = Math.max(bestPositivePeakMatchXCorr, bestNegativePeakMatchXCorr);
 				
@@ -39,7 +39,7 @@ public class PeakMatchProcessor {
 	}
 	
 
-	private double xcorrSpecificOffset(Event a, Event b, int[] aOffsets, int[] bOffsets) {
+	private double peakmatchSpecificOffset(Event a, Event b, int[] aOffsets, int[] bOffsets) {
 		final int len = a.getD().length;
 		final int samplingStride = _conf.getSamplingStride();
 		double bestXcorr = -1;
@@ -77,21 +77,21 @@ public class PeakMatchProcessor {
 	}
 	
 	
-	public Map<String, Double> fullXCorrPostProcess(Set<String> candidateKeys, List<FFTPreprocessedEvent> events) {
+	public Map<String, Double> fullFFTXCorr(Set<String> candidateKeys, List<Event> events) {
 		
 		Map<String, Double> finalMatches = Maps.newHashMap();
 		
 		for (int ii = 0; ii < events.size(); ii++) {
-			final FFTPreprocessedEvent a = events.get(ii);
+			final Event a = events.get(ii);
 
 			for (int jj = ii+1; jj < events.size(); jj++) {
-				final FFTPreprocessedEvent b = events.get(jj);
+				final Event b = events.get(jj);
 				
 				String key = new EventPair(a, b).key; 
 				if (!candidateKeys.contains(key))
 					continue;
 				
-				double[] xcorr = Util.fftXCorr(a, b);
+				double[] xcorr = Util.fftXCorr(new FFTPreprocessedEvent(a), new FFTPreprocessedEvent(b));
 				double best = Util.getHighest(xcorr);
 				
 				if (best > _conf.getFinalThreshold())

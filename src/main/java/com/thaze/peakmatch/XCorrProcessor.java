@@ -6,16 +6,20 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
 /**
@@ -28,6 +32,7 @@ public class XCorrProcessor {
 	private static final String XCORR_CANDIDATES_FILE = "xcorr.candidates";
 	private final EventProcessorConf _conf;
 	private final PeakMatchProcessor pmProcessor;
+	private final FFTPreprocessedEventFactory fftPreprocessedEventFactory = new FFTPreprocessedEventFactory();
 	
 	public XCorrProcessor() throws EventException {
 		_conf = EventProcessorConf.newBuilder(getProps()).build();
@@ -70,15 +75,16 @@ public class XCorrProcessor {
 		final Map<String, Event> eventsMap = Maps.uniqueIndex(events, new Function<Event, String>(){
 			@Override
 			public String apply(Event e) {
-				return e.getFilename();
+				return e.getName();
 			}
 		});
 		
+		long count=0;
+		Multimap<Event, Event> candidates = HashMultimap.create();
 		try (BufferedReader br = new BufferedReader(new FileReader(XCORR_CANDIDATES_FILE)) ){
-			
-			long count=0;
 			String line;
 			while (null != (line = br.readLine())){
+				
 				String[] sa = line.split("\t");
 				if (sa.length != 3){
 					System.err.println("line invalid: '" + line + "'");
@@ -92,14 +98,34 @@ public class XCorrProcessor {
 				if (null == e2)
 					System.err.println("event " + sa[1] + " not found");
 				
-				
-				
-				
+				candidates.put(e1, e2);
 			}
-			
 		} catch (IOException e) {
 			System.err.println("error reading file " + XCORR_CANDIDATES_FILE);
 			throw new EventException(e);
+		}
+		
+		System.out.println("loaded " + candidates.size() + " candidate pairs to test");
+		
+		count=0;
+		for (Entry<Event, Collection<Event>> e: candidates.asMap().entrySet()){
+			FFTPreprocessedEvent fe1 = fftPreprocessedEventFactory.make(e.getKey());
+			
+			for (Event e2: e.getValue()){
+				FFTPreprocessedEvent fe2 = fftPreprocessedEventFactory.make(e2);
+				
+				double[] xcorr = Util.fftXCorr(fe1, fe2);
+				double best = Util.getHighest(xcorr);
+				
+				if (best > _conf.getFinalThreshold()){
+					// TODO
+				}
+				
+				if (++count % 1000 == 0){
+					System.out.println(count + " FFT pairs calculated - " + Util.memoryUsage());
+					System.out.println(fftPreprocessedEventFactory.stats());
+				}
+			}
 		}
 	}
 
@@ -130,7 +156,7 @@ public class XCorrProcessor {
 				}
 			};
 			
-			pmProcessor.generateCandidateXcorr(events, collector, null);
+			pmProcessor.peakmatchCandidates(events, collector, null);
 			
 		} catch (IOException e) {
 			System.err.println("error writing file " + XCORR_CANDIDATES_FILE);
@@ -156,12 +182,12 @@ public class XCorrProcessor {
 	}
 
 	private void analyseAccuracy() throws EventException {
-		List<FFTPreprocessedEvent> events = loadSampleEvents();
+		List<Event> events = loadSampleEvents();
 		System.out.println("found " + _conf.countAllEvents() + " full events");
 		
 		MapCollector candidates = new MapCollector();
 		MapCollector rejections = new MapCollector();
-		pmProcessor.generateCandidateXcorr(events, candidates, rejections);
+		pmProcessor.peakmatchCandidates(events, candidates, rejections);
 		
 		Map<String, Double> full = loadSampleXCorr(events);
 		Map<String, Double> fullAboveThreshold = reduceToFinalThreshold(full);
@@ -206,7 +232,7 @@ public class XCorrProcessor {
 	}
 
 	private void analysePerformance() throws EventException {
-		List<FFTPreprocessedEvent> events = loadSampleEvents();
+		List<Event> events = loadSampleEvents();
 		
 		System.out.println();
 		System.out.println("*** Performance analysis ***");
@@ -223,16 +249,16 @@ public class XCorrProcessor {
 			System.out.println("=== Peakmatch phase ===");
 			
 			long t0 = System.currentTimeMillis();
-			pmProcessor.generateCandidateXcorr(events, candidates, null);
-			long tPM = System.currentTimeMillis()-t0;
+			pmProcessor.peakmatchCandidates(events, candidates, null);
+			double tPM = System.currentTimeMillis()-t0;
 			
 			int pairs = events.size()*events.size()/2;
-			long eachMicrosec = 1000*tPM/pairs;
-			long perSec = 1000000 / eachMicrosec;
-			extrapolatedForAllMS = allPairs * eachMicrosec / 1000;
+			double eachMicrosec = 1000*tPM/pairs;
+			double perSec = 1000000 / eachMicrosec;
+			extrapolatedForAllMS = (long)(allPairs * eachMicrosec / 1000);
 			
 			System.out.println(events.size() + " events sampled -> " + pairs + " distinct pairs");
-			System.out.println(tPM + " ms, " + eachMicrosec + "μs each, " + perSec + "/sec");
+			System.out.println(tPM + " ms, " + (long)eachMicrosec + "μs each, " + (long)perSec + "/sec");
 			
 			System.out.println("Peakmatch method - extrapolation to all events (" + allPairs + " distinct pairs of " + _conf.countAllEvents() + " events): " + Util.periodToString(extrapolatedForAllMS));
 		}
@@ -242,7 +268,7 @@ public class XCorrProcessor {
 			System.out.println("=== Postprocess phase ===");
 		
 			long t0 = System.currentTimeMillis();
-			Map<String, Double> finalMatches = pmProcessor.fullXCorrPostProcess(candidates.keySet(), events);
+			Map<String, Double> finalMatches = pmProcessor.fullFFTXCorr(candidates.keySet(), events);
 			long tPostProcess = System.currentTimeMillis()-t0;
 			
 			long eachMicrosec = 1000*tPostProcess/candidates.size();
@@ -278,7 +304,7 @@ public class XCorrProcessor {
 		});
 	}
 	
-	public Map<String, Double> loadSampleXCorr(List<FFTPreprocessedEvent> events) throws EventException {
+	public Map<String, Double> loadSampleXCorr(List<Event> events) throws EventException {
 		
 		Map<String, Double> samples = Maps.newHashMap();
 		
@@ -306,13 +332,15 @@ public class XCorrProcessor {
 		try (BufferedReader br = new BufferedReader(new FileReader(XCORR_SAMPLE_SAVE_FILE))){
 			while (null != (line = br.readLine())) {
 				String[] sa = line.split("\t");
-				if (sa.length != 2)
+				if (sa.length != 3)
 					throw new EventException("invalid file " + XCORR_SAMPLE_SAVE_FILE + " line: '" + line + "'");
 				
-				if (!keys.contains(sa[0]))
+				String key = sa[0] + "\t" + sa[1];
+				
+				if (!keys.contains(key))
 					continue;
-				samples.put(sa[0], Double.parseDouble(sa[1]));
-				keys.remove(sa[0]);
+				samples.put(key, Double.parseDouble(sa[2]));
+				keys.remove(key);
 			}
 		} catch (IOException e) {
 			throw new EventException("error reading xcorr list, line '" + line + "'", e);
@@ -332,13 +360,13 @@ public class XCorrProcessor {
 				for (int ii = 0; ii < events.size(); ii++) {
 					for (int jj = ii + 1; jj < events.size(); jj++) {
 	
-						FFTPreprocessedEvent a = events.get(ii);
-						FFTPreprocessedEvent b = events.get(jj);
+						Event a = events.get(ii);
+						Event b = events.get(jj);
 						
 						String key = new EventPair(a, b).key;
 						if (!keys.contains(key))
 							continue;
-	
+						
 						double[] xcorr = Util.fftXCorr(a, b);
 						double best = Util.getHighest(xcorr);
 						
@@ -379,9 +407,7 @@ public class XCorrProcessor {
 		File[] fs = _conf.getDataset().listFiles();
 		for (File f : fs){
 			try{
-				data.add(new Event(f, _conf));
-				
-				new FFTPreprocessedEvent(f, _conf);
+				data.add(new BasicEvent(f, _conf));
 				
 				if (data.size() % 1000 == 0){
 					System.out.println(data.size() + " / " + fs.length + " loaded - " + Util.memoryUsage());
@@ -401,15 +427,15 @@ public class XCorrProcessor {
 		return data;
 	}
 
-	private List<FFTPreprocessedEvent> loadSampleEvents() throws EventException {
+	private List<Event> loadSampleEvents() throws EventException {
 		
 		System.out.println("loading sample events ...");
 		
-		List<FFTPreprocessedEvent> data = Lists.newArrayList();
+		List<Event> data = Lists.newArrayList();
 		boolean fail=false;
 		for (File f : Lists.newArrayList(_conf.getSampledataset().listFiles())){
 			try{
-				data.add(new FFTPreprocessedEvent(f, _conf));
+				data.add(new BasicEvent(f, _conf));
 			} catch (EventException e1){
 				System.err.println("failed to load: " + e1.getMessage());
 				fail=true;
@@ -418,7 +444,6 @@ public class XCorrProcessor {
 		
 		if (fail)
 			throw new EventException("not all files validated");
-		
 		
 		System.out.println("loaded " + data.size() + " sample events");
 		

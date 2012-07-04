@@ -40,6 +40,12 @@ prerequisites:
 java 1.7
 maven 2
 
+dependencies (via maven):
+apache commons-lang
+apache commons-math
+google guava
+joda-time
+
 compilation:
 mvn assembly:single
 

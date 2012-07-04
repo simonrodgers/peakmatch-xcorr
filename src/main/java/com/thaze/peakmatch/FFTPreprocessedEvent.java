@@ -1,20 +1,19 @@
 package com.thaze.peakmatch;
 
-import java.io.File;
 import java.util.Arrays;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.math.complex.Complex;
 
-
-public class FFTPreprocessedEvent extends Event {
+public class FFTPreprocessedEvent implements Event {
 
 	private final Complex[] forwards_fft;
 	private final Complex[] reverse_fft;
-//	private final int _peakFreq;
 	
-	public FFTPreprocessedEvent(File file, EventProcessorConf conf) throws EventException {
-		super(file, conf);
+	private final Event delegate;
+	
+	public FFTPreprocessedEvent (Event e){
+		delegate = e;
 
 		// precalculation of an event's forwards and reverse FFT transforms speeds up O(N^2) xcorr
 		int padded_len = Util.nextPowerOfTwo(length() * 2);
@@ -29,16 +28,6 @@ public class FFTPreprocessedEvent extends Event {
 
 		forwards_fft = Util.FFTtransform(forwards);
 		reverse_fft = Util.FFTtransform(reverse);
-		
-//		int peakFreq=0;
-//		double peakAbs=0;
-//		for (int ii=0; ii<getForwardFFT().length; ii++){
-//			if (getForwardFFT()[ii].abs() > peakAbs){
-//				peakAbs = getForwardFFT()[ii].abs();
-//				peakFreq = ii;
-//			}
-//		}
-//		_peakFreq = peakFreq;
 	}
 
 	public Complex[] getForwardFFT() {
@@ -49,7 +38,39 @@ public class FFTPreprocessedEvent extends Event {
 		return reverse_fft;
 	}
 
-//	public int getPeakFreq() {
-//		return _peakFreq;
-//	}
+	public int hashCode() {
+		return delegate.hashCode();
+	}
+
+	public boolean equals(Object obj) {
+		return delegate.equals(obj);
+	}
+
+	public double[] getD() {
+		return delegate.getD();
+	}
+
+	public String getName() {
+		return delegate.getName();
+	}
+
+	public int[] getMaxSpatialPeaks() {
+		return delegate.getMaxSpatialPeaks();
+	}
+
+	public int[] getMinSpatialPeaks() {
+		return delegate.getMinSpatialPeaks();
+	}
+
+	public int[] getIndexesAboveThreshold() {
+		return delegate.getIndexesAboveThreshold();
+	}
+
+	public int length() {
+		return delegate.length();
+	}
+
+	public String toString() {
+		return delegate.toString();
+	}
 }
