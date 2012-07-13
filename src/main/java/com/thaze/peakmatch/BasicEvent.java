@@ -19,14 +19,6 @@ public class BasicEvent implements Event {
 	private final int[] minSpatialPeaks;
 
 	private final int[] indexesAboveThreshold;
-	
-//	public BasicEvent(BasicEvent e) {
-//		this._d = e._d;
-//		this._filename = e.getName();
-//		this.maxSpatialPeaks = e.maxSpatialPeaks;
-//		this.minSpatialPeaks = e.minSpatialPeaks;
-//		this.indexesAboveThreshold = e.indexesAboveThreshold;
-//	}
 
 	public BasicEvent(File file, EventProcessorConf conf) throws EventException {
 
@@ -62,6 +54,7 @@ public class BasicEvent implements Event {
 		for (int ii = 0; ii < _d.length; ii++)
 			_d[ii] /= rms;
 
+		// calculate peaks - defined as largest amplitude point between two origin-crossing
 		List<Tuple<Integer, Double>> aPeaks = new ArrayList<Tuple<Integer, Double>>();
 		int peakX = 0;
 		double peakAmp = 0;
@@ -77,10 +70,10 @@ public class BasicEvent implements Event {
 			}
 		}
 
-		if (aPeaks.size() == 0) {
-			System.err.println(getName() + " has no peaks :-(");
-		}
+		if (aPeaks.size() < conf.getTopNPeaksToMatch())
+			throw new EventException(getName() + " doesn't have enough peaks");
 
+		// sort by amplitude descending
 		Collections.sort(aPeaks, new Comparator<Tuple<Integer, Double>>() {
 			@Override
 			public int compare(Tuple<Integer, Double> o1, Tuple<Integer, Double> o2) {
@@ -88,20 +81,17 @@ public class BasicEvent implements Event {
 			}
 		});
 
+		maxSpatialPeaks = new int[conf.getTopNPeaksToMatch()];
+		minSpatialPeaks = new int[conf.getTopNPeaksToMatch()];
+
+		// TOP_N_PEAKS max (peaks) and min (troughs)
+		for (int ii = 0; ii < maxSpatialPeaks.length; ii++)
+			maxSpatialPeaks[ii] = aPeaks.get(ii).getFirst();
+		for (int ii = 0; ii < minSpatialPeaks.length; ii++)
+			minSpatialPeaks[ii] = aPeaks.get(aPeaks.size() - ii - 1).getFirst();
+
 		double maxPeak = aPeaks.get(0).getSecond();
 		double minPeak = aPeaks.get(aPeaks.size() - 1).getSecond();
-
-		maxSpatialPeaks = new int[Math.min(conf.getTopNPeaksToMatch(), aPeaks.size())];
-		minSpatialPeaks = new int[Math.min(conf.getTopNPeaksToMatch(), aPeaks.size())];
-
-		// max and min TOP_N_PEAKS peaks, ordered by abs() descending
-		for (int ii = 0; ii < maxSpatialPeaks.length; ii++) {
-			maxSpatialPeaks[ii] = aPeaks.get(ii).getFirst();
-		}
-		for (int ii = 0; ii < minSpatialPeaks.length; ii++) {
-			minSpatialPeaks[ii] = aPeaks.get(aPeaks.size() - ii - 1).getFirst();
-		}
-
 		List<Integer> t = new ArrayList<Integer>();
 		for (int ii = 0; ii < _d.length; ii++) {
 			if (_d[ii] > maxPeak * conf.getTopAmplitudeThreshold() || _d[ii] < minPeak * conf.getTopAmplitudeThreshold())

@@ -66,7 +66,7 @@ public class EventProcessorConf {
 		_builder=builder;
 	}
 	
-	public static enum Mode{ANALYSE, PEAKMATCH, POSTPROCESS}
+	public static enum Mode{ANALYSE, PEAKMATCH, FFTPRECACHE, POSTPROCESS}
 	
 	public static class Builder{
 		private File dataset;

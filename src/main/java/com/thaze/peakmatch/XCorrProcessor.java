@@ -21,6 +21,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
+import com.thaze.peakmatch.MMappedFFTCache.CreationPolicy;
 
 /**
  * @author Simon Rodgers
@@ -30,6 +31,8 @@ public class XCorrProcessor {
 	private static final String CONF_FILE = "xcorr.conf";
 	private static final String XCORR_SAMPLE_SAVE_FILE = "xcorr.saved";
 	private static final String XCORR_CANDIDATES_FILE = "xcorr.candidates";
+	private static final String XCORR_POSTPROCESS_FILE = "xcorr.postprocess";
+	
 	private final EventProcessorConf _conf;
 	private final PeakMatchProcessor pmProcessor;
 	private final FFTPreprocessedEventFactory fftPreprocessedEventFactory = new FFTPreprocessedEventFactory();
@@ -40,7 +43,6 @@ public class XCorrProcessor {
 	}
 
 	public static void main(String[] args) {
-		
 		
 		long t0 = System.currentTimeMillis();
 		System.out.println();
@@ -58,6 +60,8 @@ public class XCorrProcessor {
 				p.analysePerformance();
 			break; case PEAKMATCH:
 				p.doPeakMatch();
+			break; case FFTPRECACHE:
+				p.doFFTPrecache();
 			break; case POSTPROCESS:
 				p.doPostProcess();
 			}
@@ -70,7 +74,32 @@ public class XCorrProcessor {
 		System.out.println("*** done [" + (System.currentTimeMillis()-t0) + " ms] ***");
 	}
 	
+	private void doFFTPrecache() throws EventException {
+		
+		System.out.println("loading events for precache ...");
+		
+		MMappedFFTCache c = new MMappedFFTCache(CreationPolicy.DELETE_OLD);
+
+		File[] fs = _conf.getDataset().listFiles();
+		
+		int count = 0;
+		Util.initialiseStats();
+		for (File f : fs){
+			Event e = new BasicEvent(f, _conf);
+			c.addToCache(new FFTPreprocessedEvent(e));
+			
+			if (++count % 1000 == 0)
+				System.out.println(Util.runningStats(count, fs.length));
+		}
+		
+		c.commitIndex();
+		
+		System.out.println("precached " + count + " events");
+	}
+
 	private void doPostProcess() throws EventException {
+		
+		// load all events and self-index by name
 		final List<Event> events = loadAllEvents();
 		final Map<String, Event> eventsMap = Maps.uniqueIndex(events, new Function<Event, String>(){
 			@Override
@@ -79,7 +108,7 @@ public class XCorrProcessor {
 			}
 		});
 		
-		long count=0;
+		// load all candidates, arrange as map of {Event : [candidate Event]} for iteration
 		Multimap<Event, Event> candidates = HashMultimap.create();
 		try (BufferedReader br = new BufferedReader(new FileReader(XCORR_CANDIDATES_FILE)) ){
 			String line;
@@ -107,38 +136,49 @@ public class XCorrProcessor {
 		
 		System.out.println("loaded " + candidates.size() + " candidate pairs to test");
 		
-		count=0;
-		for (Entry<Event, Collection<Event>> e: candidates.asMap().entrySet()){
-			FFTPreprocessedEvent fe1 = fftPreprocessedEventFactory.make(e.getKey());
-			
-			for (Event e2: e.getValue()){
-				FFTPreprocessedEvent fe2 = fftPreprocessedEventFactory.make(e2);
+		Util.initialiseStats();
+		try (final BufferedWriter bw = new BufferedWriter(new FileWriter(XCORR_POSTPROCESS_FILE)) ){
+		
+			long count=0;
+			for (Entry<Event, Collection<Event>> e: candidates.asMap().entrySet()){
+				FFTPreprocessedEvent fe1 = fftPreprocessedEventFactory.make(e.getKey());
 				
-				double[] xcorr = Util.fftXCorr(fe1, fe2);
-				double best = Util.getHighest(xcorr);
-				
-				if (best > _conf.getFinalThreshold()){
-					// TODO
-				}
-				
-				if (++count % 1000 == 0){
-					System.out.println(count + " FFT pairs calculated - " + Util.memoryUsage());
-					System.out.println(fftPreprocessedEventFactory.stats());
+				for (Event e2: e.getValue()){
+					FFTPreprocessedEvent fe2 = fftPreprocessedEventFactory.make(e2);
+					
+					double[] xcorr = Util.fftXCorr(fe1, fe2);
+					double best = Util.getHighest(xcorr);
+					
+					if (best > _conf.getFinalThreshold())
+						bw.write(fe1.getName() + "\t" + fe2.getName() + "\t" + best + "\n");
+					
+					count++;
+					if (count % 1000 == 0)
+						System.out.println(Util.runningStats(count, candidates.size()));
+					
+					if (count % 10000 == 0)
+						System.out.println(fftPreprocessedEventFactory.stats());
 				}
 			}
+		} catch (IOException e) {
+			System.err.println("error writing file " + XCORR_POSTPROCESS_FILE);
+			throw new EventException(e);
 		}
 	}
 
 	private void doPeakMatch() throws EventException {
 		final List<Event> events = loadAllEvents();
 
-		System.out.println("starting peakmatch - " + events.size() * events.size() / 2 + " pairs");
+		final long totalPairs = events.size() * events.size() / 2;
+		System.out.println("starting peakmatch - " + totalPairs + " pairs");
 		
 		final AtomicLong count=new AtomicLong();
+		Util.initialiseStats();
 		try (final BufferedWriter bw = new BufferedWriter(new FileWriter(XCORR_CANDIDATES_FILE)) ){
 			
 			EventPairCollector collector = new EventPairCollector(){
-				long outerEventsComplete = 0;
+				long totalPairsComplete = 0;
+				int outerEventsComplete = 0;
 				@Override
 				public void collect(String key, double score) throws EventException{
 					try {
@@ -149,10 +189,11 @@ public class XCorrProcessor {
 					count.incrementAndGet();
 				}
 				
-				public void notifyOuterComplete(){
+				public void notifyOuterComplete(int pairsProcessed){
+					totalPairsComplete += pairsProcessed;
 					outerEventsComplete++;
 					if (outerEventsComplete % 100 == 0)
-						System.out.println(outerEventsComplete + " / " + events.size() + " events complete");
+						System.out.println(Util.runningStats(totalPairsComplete, totalPairs));
 				}
 			};
 			
@@ -367,7 +408,7 @@ public class XCorrProcessor {
 						if (!keys.contains(key))
 							continue;
 						
-						double[] xcorr = Util.fftXCorr(a, b);
+						double[] xcorr = Util.fftXCorr(a, b); // slowish (no precaching of FFT) but doesn't matter for samples
 						double best = Util.getHighest(xcorr);
 						
 						bw.write(key + "\t" + Util.NF.format(best) + "\n");
@@ -405,12 +446,15 @@ public class XCorrProcessor {
 		List<Event> data = Lists.newArrayList();
 		boolean fail=false;
 		File[] fs = _conf.getDataset().listFiles();
+		
+		Util.initialiseStats();
 		for (File f : fs){
 			try{
-				data.add(new BasicEvent(f, _conf));
+				Event e = new BasicEvent(f, _conf);
+				data.add(e);
 				
 				if (data.size() % 1000 == 0){
-					System.out.println(data.size() + " / " + fs.length + " loaded - " + Util.memoryUsage());
+					System.out.println(Util.runningStats(data.size(), fs.length));
 					System.gc();
 				}
 			} catch (EventException e1){

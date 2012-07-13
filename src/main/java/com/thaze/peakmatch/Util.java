@@ -8,13 +8,29 @@ import org.apache.commons.math.transform.FastFourierTransformer;
 import org.joda.time.Period;
 import org.joda.time.chrono.ISOChronology;
 import org.joda.time.format.PeriodFormat;
+import org.joda.time.format.PeriodFormatter;
+import org.joda.time.format.PeriodFormatterBuilder;
 
 public class Util {
 	
 	public final static NumberFormat NF = new DecimalFormat("#.###");
+	
+	private static final PeriodFormatter PF = new PeriodFormatterBuilder()
+		.appendDays()
+		.appendSuffix(" day", " days")
+		.appendSeparator(", ", " and ")
+		.appendHours()
+		.appendSuffix(" hr")
+		.appendSeparator(", ", " and ")
+		.appendMinutes()
+		.appendSuffix(" min")
+		.appendSeparator(" and ")
+		.appendSeconds()
+		.appendSuffix(" sec")
+		.toFormatter();
 
 	public static String periodToString(long ms){
-		return PeriodFormat.getDefault().print(new Period(ms, ISOChronology.getInstanceUTC()));
+		return PF.print(new Period(ms, ISOChronology.getInstanceUTC()));
 	}
 
 	public static int nextPowerOfTwo(int x) {
@@ -51,7 +67,7 @@ public class Util {
 		return r;
 	}
 	
-	private static final FastFourierTransformer fft = new FastFourierTransformer();
+	private static final FastFourierTransformer FFT = new FastFourierTransformer();
 	
 	public static double[] fftXCorr(Event a, Event b) {
 		return fftXCorr(new FFTPreprocessedEvent(a), new FFTPreprocessedEvent(b));
@@ -63,7 +79,7 @@ public class Util {
 		for (int ii = 0; ii < a.getForwardFFT().length; ii++)
 			product[ii] = a.getForwardFFT()[ii].multiply(b.getReverseFFT()[ii]);
 
-		final Complex[] inverse = fft.inversetransform(product);
+		final Complex[] inverse = FFT.inversetransform(product);
 
 		final double[] reals = new double[inverse.length];
 		int ii = 0;
@@ -74,7 +90,7 @@ public class Util {
 	}
 	
 	public static Complex[] FFTtransform(double[] reals){
-		return fft.transform(reals);
+		return FFT.transform(reals);
 	}
 	
 	public static double getHighest(double[] d) {
@@ -85,5 +101,25 @@ public class Util {
 		}
 
 		return best; // already normalised
+	}
+	
+	// icky static state but it's just for logging
+	private static long t0 = System.currentTimeMillis();
+	
+	public synchronized static void initialiseStats() {
+		t0 = System.currentTimeMillis();
+	}
+
+	public synchronized static String runningStats(long done, long total) {
+		
+		long t = System.currentTimeMillis() - t0;
+		
+		double each = (double)t/done;
+		String eachStr = each < 1 ? NF.format(each*1000)+" μs" : NF.format(each)+" ms";
+		
+		String finishStr = periodToString(t * (total-done) / done);
+		String takenStr = periodToString(t);
+		
+		return done + " / " + total + " done, taken " + takenStr + " (" + eachStr + " each), projected finish: " + finishStr + " [" + memoryUsage() + "]";  
 	}
 }

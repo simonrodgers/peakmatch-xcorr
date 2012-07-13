@@ -21,7 +21,7 @@ class MapCollector implements EventPairCollector {
 	public Set<String> keySet(){
 		return ImmutableSet.copyOf(data.keySet());
 	}
-	public void notifyOuterComplete(){
+	public void notifyOuterComplete(int pairsProcessed){
 		// no-op
 	}
 }

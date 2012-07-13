@@ -12,6 +12,12 @@ public class FFTPreprocessedEvent implements Event {
 	
 	private final Event delegate;
 	
+	public FFTPreprocessedEvent (Event e, Complex[] forwards_fft, Complex[] reverse_fft){
+		delegate = e;
+		this.forwards_fft=forwards_fft;
+		this.reverse_fft=reverse_fft;
+	}
+	
 	public FFTPreprocessedEvent (Event e){
 		delegate = e;
 
@@ -29,7 +35,7 @@ public class FFTPreprocessedEvent implements Event {
 		forwards_fft = Util.FFTtransform(forwards);
 		reverse_fft = Util.FFTtransform(reverse);
 	}
-
+	
 	public Complex[] getForwardFFT() {
 		return forwards_fft;
 	}

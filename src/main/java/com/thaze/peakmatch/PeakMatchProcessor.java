@@ -34,7 +34,7 @@ public class PeakMatchProcessor {
 					rejectionCollector.collect(new EventPair(a, b).key, best);
 			}
 			
-			successCollector.notifyOuterComplete();
+			successCollector.notifyOuterComplete(events.size()-ii-1);
 		}
 	}
 	
