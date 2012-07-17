@@ -135,7 +135,7 @@ Operation
 
 * take small (~1000) random sample from full into sample:
 
- 	ls /path/to/full | shuf | head -1000 | xargs -I xx cp /path/to/full/xx /path/to/sample
+	ls /path/to/full | shuf | head -1000 | xargs -I xx cp /path/to/full/xx /path/to/sample
 
 * edit xcorr.conf, add locations of dataset directories
 * initial parameter refinement - set mode=ANALYSE, compile, run (see below), observe output
