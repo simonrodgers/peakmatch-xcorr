@@ -1,9 +1,9 @@
-package com.thaze.peakmatch;
+package com.thaze.peakmatch.event;
 
 public class EventPair implements Comparable<EventPair>{
-	final Event _e1;
-	final Event _e2;
-	final String key;
+	private final Event _e1;
+	private final Event _e2;
+	private final String key;
 	public EventPair(Event e1, Event e2) {
 
 		if (e1 == e2 || e1.getName().equals(e2.getName()))
@@ -19,18 +19,18 @@ public class EventPair implements Comparable<EventPair>{
 			_e2=e1;
 		}
 		
-		key = _e1.getName() + "\t" + _e2.getName();
+		key = getE1().getName() + "\t" + getE2().getName();
 	}
 	
 	@Override
 	public int compareTo(EventPair o) {
-		return key.compareTo(o.key);
+		return getKey().compareTo(o.getKey());
 	}
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((key == null) ? 0 : key.hashCode());
+		result = prime * result + ((getKey() == null) ? 0 : getKey().hashCode());
 		return result;
 	}
 	@Override
@@ -42,11 +42,23 @@ public class EventPair implements Comparable<EventPair>{
 		if (getClass() != obj.getClass())
 			return false;
 		EventPair other = (EventPair) obj;
-		if (key == null) {
-			if (other.key != null)
+		if (getKey() == null) {
+			if (other.getKey() != null)
 				return false;
-		} else if (!key.equals(other.key))
+		} else if (!getKey().equals(other.getKey()))
 			return false;
 		return true;
+	}
+
+	public Event getE1() {
+		return _e1;
+	}
+
+	public Event getE2() {
+		return _e2;
+	}
+
+	public String getKey() {
+		return key;
 	}
 }

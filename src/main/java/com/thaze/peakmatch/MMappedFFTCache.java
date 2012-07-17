@@ -8,6 +8,9 @@ import net.sf.json.JSONObject;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.math.complex.Complex;
 
+import com.thaze.peakmatch.event.Event;
+import com.thaze.peakmatch.event.FFTPreprocessedEvent;
+
 import vanilla.java.chronicle.Excerpt;
 import vanilla.java.chronicle.impl.IndexedChronicle;
 
@@ -20,14 +23,15 @@ import vanilla.java.chronicle.impl.IndexedChronicle;
  * 
  * uses Chronicle library to partition (to around Java's 2GB MappedByteBuffer limit) and index entries (numeric index)
  * also stores a separate JSON file to index {event name : chronicle numeric id}
- * https://github.com/peter-lawrey/Java-Chronicle 
+ * 
+ * see https://github.com/peter-lawrey/Java-Chronicle 
  * 
  * @author Simon Rodgers
  */
 public class MMappedFFTCache {
 	
-	private final static File INDEXFILE = new File("fftcache.index.json");
-	private final static String CHRONICLEFILE = "fftcache.chronicle";
+	public final static File INDEXFILE = new File("fftcache.index.json");
+	public final static String CHRONICLEFILE = "fftcache.chronicle";
 	
 	private final IndexedChronicle chronicle;
 	private final JSONObject index;

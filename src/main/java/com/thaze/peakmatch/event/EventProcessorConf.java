@@ -1,13 +1,18 @@
-package com.thaze.peakmatch;
+package com.thaze.peakmatch.event;
 
 import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.Properties;
 
 public class EventProcessorConf {
 	
 	final Builder _builder;
 	
-	public static Builder newBuilder (Properties props) throws EventException {
+	public static Builder buildFromConf (String confFile) throws EventException {
+		
+		Properties props = getProps(confFile);
+		
 		Builder b = new Builder();
 		
 		File dataset = new File(props.getProperty(				"dataset.full"));
@@ -240,5 +245,20 @@ public class EventProcessorConf {
 	@Override
 	public String toString() {
 		return _builder.toString();
+	}
+	
+	private static Properties getProps(String filename) throws EventException{
+
+		File propsFile = new File(filename);
+		if (!propsFile.exists())
+			throw new EventException("missing conf file " + filename);
+		
+		Properties props = new Properties();
+		try {
+			props.load(new FileReader(propsFile));
+		} catch (IOException e) {
+			throw new EventException(e);
+		}
+		return props;
 	}
 }

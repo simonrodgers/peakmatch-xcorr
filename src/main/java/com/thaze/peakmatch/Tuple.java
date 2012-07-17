@@ -9,7 +9,7 @@ public class Tuple<T, U> {
 		this.second = u;
 	}
 
-	static <T, U> Tuple<T, U> tuple(T first, U second){
+	public static <T, U> Tuple<T, U> tuple(T first, U second){
 		return new Tuple<T,U>(first, second);
 	}
 

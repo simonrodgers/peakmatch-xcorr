@@ -1,6 +1,6 @@
-package com.thaze.peakmatch;
+package com.thaze.peakmatch.event;
 
-interface EventPairCollector{
+public interface EventPairCollector{
 	void collect(String key, double score) throws EventException;
 	void notifyOuterComplete(int pairsProcessed);
 }

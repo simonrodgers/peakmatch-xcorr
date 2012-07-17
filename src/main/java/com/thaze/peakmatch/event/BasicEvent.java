@@ -1,4 +1,4 @@
-package com.thaze.peakmatch;
+package com.thaze.peakmatch.event;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -10,6 +10,9 @@ import java.util.Comparator;
 import java.util.List;
 
 import org.apache.commons.lang.ArrayUtils;
+
+import com.thaze.peakmatch.Tuple;
+import com.thaze.peakmatch.Util;
 
 public class BasicEvent implements Event {
 	private final double[] _d;

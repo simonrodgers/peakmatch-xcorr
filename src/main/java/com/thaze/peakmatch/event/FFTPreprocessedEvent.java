@@ -1,9 +1,11 @@
-package com.thaze.peakmatch;
+package com.thaze.peakmatch.event;
 
 import java.util.Arrays;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.math.complex.Complex;
+
+import com.thaze.peakmatch.Util;
 
 public class FFTPreprocessedEvent implements Event {
 

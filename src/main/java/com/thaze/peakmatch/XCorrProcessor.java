@@ -10,7 +10,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -22,23 +21,32 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 import com.thaze.peakmatch.MMappedFFTCache.CreationPolicy;
+import com.thaze.peakmatch.event.BasicEvent;
+import com.thaze.peakmatch.event.Event;
+import com.thaze.peakmatch.event.EventException;
+import com.thaze.peakmatch.event.EventPair;
+import com.thaze.peakmatch.event.EventPairCollector;
+import com.thaze.peakmatch.event.EventProcessorConf;
+import com.thaze.peakmatch.event.FFTPreprocessedEvent;
+import com.thaze.peakmatch.event.FFTPreprocessedEventFactory;
+import com.thaze.peakmatch.event.MapCollector;
 
 /**
  * @author Simon Rodgers
  */
 public class XCorrProcessor {
 	
-	private static final String CONF_FILE = "xcorr.conf";
-	private static final String XCORR_SAMPLE_SAVE_FILE = "xcorr.saved";
-	private static final String XCORR_CANDIDATES_FILE = "xcorr.candidates";
-	private static final String XCORR_POSTPROCESS_FILE = "xcorr.postprocess";
+	public static final String CONF_FILE = "xcorr.conf";
+	public static final String XCORR_SAMPLE_SAVE_FILE = "xcorr.saved";
+	public static final String XCORR_CANDIDATES_FILE = "xcorr.candidates";
+	public static final String XCORR_POSTPROCESS_FILE = "xcorr.postprocess";
 	
 	private final EventProcessorConf _conf;
 	private final PeakMatchProcessor pmProcessor;
 	private final FFTPreprocessedEventFactory fftPreprocessedEventFactory = new FFTPreprocessedEventFactory();
 	
 	public XCorrProcessor() throws EventException {
-		_conf = EventProcessorConf.newBuilder(getProps()).build();
+		_conf = EventProcessorConf.buildFromConf(CONF_FILE).build();
 		pmProcessor = new PeakMatchProcessor(_conf);
 	}
 
@@ -207,21 +215,6 @@ public class XCorrProcessor {
 		System.out.println("Peakmatch completed - " + count.get() + " candidate pairs");
 	}
 
-	private static Properties getProps() throws EventException{
-
-		File propsFile = new File(CONF_FILE);
-		if (!propsFile.exists())
-			throw new EventException("missing conf file " + CONF_FILE);
-		
-		Properties props = new Properties();
-		try {
-			props.load(new FileReader(propsFile));
-		} catch (IOException e) {
-			throw new EventException(e);
-		}
-		return props;
-	}
-
 	private void analyseAccuracy() throws EventException {
 		List<Event> events = loadSampleEvents();
 		System.out.println("found " + _conf.countAllEvents() + " full events");
@@ -354,7 +347,7 @@ public class XCorrProcessor {
 		for (Event a: events){
 			for (Event b: events){
 				if (!a.equals(b))
-					keys.add(new EventPair(a, b).key);
+					keys.add(new EventPair(a, b).getKey());
 			}
 		}
 		
@@ -404,7 +397,7 @@ public class XCorrProcessor {
 						Event a = events.get(ii);
 						Event b = events.get(jj);
 						
-						String key = new EventPair(a, b).key;
+						String key = new EventPair(a, b).getKey();
 						if (!keys.contains(key))
 							continue;
 						

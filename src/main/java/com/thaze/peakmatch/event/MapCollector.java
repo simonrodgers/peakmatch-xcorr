@@ -1,4 +1,4 @@
-package com.thaze.peakmatch;
+package com.thaze.peakmatch.event;
 
 import java.util.Map;
 import java.util.Set;
@@ -6,8 +6,13 @@ import java.util.Set;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
 
-class MapCollector implements EventPairCollector {
+public class MapCollector implements EventPairCollector {
+	
 	private final Map<String, Double> data = Maps.newHashMap();
+	
+	public MapCollector(){
+	}
+
 	@Override
 	public void collect(String key, double score) {
 		data.put(key, score);

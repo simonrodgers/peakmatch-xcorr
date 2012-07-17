@@ -1,4 +1,4 @@
-package com.thaze.peakmatch;
+package com.thaze.peakmatch.event;
 
 public interface Event {
 	public double[] getD();

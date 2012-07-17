@@ -5,6 +5,12 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.Maps;
+import com.thaze.peakmatch.event.Event;
+import com.thaze.peakmatch.event.EventException;
+import com.thaze.peakmatch.event.EventPair;
+import com.thaze.peakmatch.event.EventPairCollector;
+import com.thaze.peakmatch.event.EventProcessorConf;
+import com.thaze.peakmatch.event.FFTPreprocessedEvent;
 
 
 public class PeakMatchProcessor {
@@ -29,9 +35,9 @@ public class PeakMatchProcessor {
 				double best = Math.max(bestPositivePeakMatchXCorr, bestNegativePeakMatchXCorr);
 				
 				if (best > _conf.getCandidateThreshold())
-					successCollector.collect(new EventPair(a, b).key, best);
+					successCollector.collect(new EventPair(a, b).getKey(), best);
 				else if (null != rejectionCollector)
-					rejectionCollector.collect(new EventPair(a, b).key, best);
+					rejectionCollector.collect(new EventPair(a, b).getKey(), best);
 			}
 			
 			successCollector.notifyOuterComplete(events.size()-ii-1);
@@ -87,7 +93,7 @@ public class PeakMatchProcessor {
 			for (int jj = ii+1; jj < events.size(); jj++) {
 				final Event b = events.get(jj);
 				
-				String key = new EventPair(a, b).key; 
+				String key = new EventPair(a, b).getKey(); 
 				if (!candidateKeys.contains(key))
 					continue;
 				

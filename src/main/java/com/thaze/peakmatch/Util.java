@@ -7,9 +7,11 @@ import org.apache.commons.math.complex.Complex;
 import org.apache.commons.math.transform.FastFourierTransformer;
 import org.joda.time.Period;
 import org.joda.time.chrono.ISOChronology;
-import org.joda.time.format.PeriodFormat;
 import org.joda.time.format.PeriodFormatter;
 import org.joda.time.format.PeriodFormatterBuilder;
+
+import com.thaze.peakmatch.event.Event;
+import com.thaze.peakmatch.event.FFTPreprocessedEvent;
 
 public class Util {
 	
