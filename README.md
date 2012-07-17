@@ -2,14 +2,14 @@ Efficient bulk cross correlation of time series
 ===============================================
 Process for efficiently calculating cross correlation (xcorr) of a collection of time-series data (events), emitting only 'matches' (pairs of events which have an xcorr above a certain threshold). The match density is assumed to be sparse - less than ~ 1/100 event pairs should match for this process to be useful.
 
-* n = number of events to be cross correlated
-* m = number of data points per event
+* N = number of events to be cross correlated
+* M = number of data points per event
 
-Brute force xcorr between two events involves taking the dot product of two time series vectors, for each possible alignment between the two vectors. this leads to O(m^2) performance per event pair, and hence O(n^2 x m^2) for performing all. this is impractical for large n.
+Brute force xcorr between two events involves taking the dot product of two time series vectors, for each possible alignment between the two vectors. this leads to O(M^2) performance per event pair, and hence O(N^2 x M^2) for performing all pair calculations. this is impractical for large N.
 
-FFT-based xcorr is much faster than performing brute force xcorr - transforming into frequency space means that only O(m) operations are required per xcorr step. however, attempting a full calculation of all possible event pairs still takes O(m x n^2) performance, which is still prohibitively expensive for large n (> 10^4)
+FFT-based xcorr is much faster than performing brute force xcorr - transforming into frequency space means that only O(M) operations are required per xcorr step. however, attempting a full calculation of all possible event pairs still takes O(M x N^2) performance, which is still prohibitively expensive for large N (eg > 10^4)
 
-This process first uses a fast approximation stage, performed across all n^2 / 2 pairs. this produces a list of candidate event pairs, the length of which is << n^2. These candidate pairs are then cross-correlated using the normal FFT xcorr method to reject false positives.
+This process first uses a fast approximation stage, performed across all N^2 / 2 pairs. this produces a list of candidate event pairs, the length of which is << N^2. These candidate pairs are then cross-correlated using the normal FFT xcorr method to reject false positives.
 
 The fast approximation stage (peakmatch) uses the following techniques:
 
@@ -25,7 +25,7 @@ The approximation step, with appropriately chosen parameters, typically takes in
 
 The process has four phases:
 
-1 Analysis phase
+1 - Analysis phase
 --------------
 * Performs a full process run on a relatively small sample (~1000 events, to be prepared by user) - peakmatch and FFT xcorr
 * analyses the accuracy (false positive and false negative rate)
@@ -34,12 +34,11 @@ The process has four phases:
 Parameters are set in the config file `xcorr.conf`:
 * top-k-peaks
 	* top K peaks (both min and max), ordered by amplitude, which will be aligned together. 
-	* run-time varies as O(top-n-peaks ^ 2)
-	* every event's top N peaks are aligned against every other event's top N peaks
+	* run-time varies as O(K^2) - every event's top K peaks are aligned against every other event's top K peaks
 	
 * sampling-stride
-	* sample events every sampling-stride entries. 
-	* run-time varies as O(1/sampling-stride).
+	* sample events every sampling-stride entries
+	* run-time varies as O(1 / sampling-stride)
 	
 * top-amplitude-threshold
 	* only calculate xcorr values for values where the amplitude is higher than this fraction of the peak amplitude.
@@ -56,24 +55,24 @@ Parameters are set in the config file `xcorr.conf`:
 	* threshold for the final FFT xcorr post-process step
 
 inputs:
-* sample data set - all files in the dataset.sample directory
+* sample data set - all files in the `dataset.sample` directory
 
 outputs:
 * analysis written to the console
 
-2 Peakmatch phase
+2 - Peakmatch phase
 ---------------
-Having chosen suitable parameters in the Analysis phase, generate approximate candidates for subsequent post-processing across the full data set. emit only candidates whose approximated xcorr value is higher than candidate-threshold. This figure will necessarily be lower than the real xcorr value and the threshold should accordingly be set lower than final-threshold.
+Having chosen suitable parameters in the Analysis phase, generate approximate candidates for subsequent post-processing across the full data set. emit only candidates whose approximated xcorr value is higher than `candidate-threshold`. This figure will necessarily be lower than the real xcorr value and the threshold should accordingly be set lower than `final-threshold`.
 
 inputs:
-* full data set - all files in the dataset.full directory
+* full data set - all files in the `dataset.full` directory
 
 outputs:
 * `xcorr.candidates` - one line per match above candidate-threshold, tab-separated: `event A filename <tab> event B filename <tab> match value`
 
 while this is running, progress is printed to the console together with the projected finish time.
 
-3 FFT Precache phase
+3 - FFT Precache phase
 ------------------
 Fourier transform cross correlation process between events A and B:
 
@@ -91,7 +90,7 @@ This means that as much system memory as possible should be left free for the pa
 Note: must be run on a 64-bit system if running on more than a few thousand events, or it will exhaust addressable space.
 
 inputs:
-* full data set - all files in the dataset.full directory
+* full data set - all files in the `dataset.full` directory
 
 outputs:
 * `fftcache.chronicle.data` - memory mapped chronicle data file
@@ -100,9 +99,9 @@ outputs:
 
 while this is running, progress is printed to the console together with the projected finish time.
 
-4 Postprocess phase
+4 - Postprocess phase
 -----------------
-Having pre-calculated and stored the FFT values for each event, perform full FFT cross correlation on each candidate, emitting only pairs whose FFT xcorr value is higher than the final-threshold config value
+Having pre-calculated and stored the FFT values for each event, perform full FFT cross correlation on each candidate, emitting only pairs whose FFT xcorr value is higher than the `final-threshold` config value
 
 inputs:
 * `xcorr.candidates` - output from peakmatch phase
@@ -117,6 +116,7 @@ Data format
 Expected data file format - one file per event, containing one line per data point, a single ascii-encoded floating point value 
 
 eg:
+
 	-0.503178
 	-2.849900
 	-6.152631
