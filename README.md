@@ -131,11 +131,11 @@ Operation
 * put all events into full
 * ensure all event files have expected-file-line-count lines:
 
-	find /path/to/full -name "*.dat" | xargs wc -l | grep -v 10240 | grep -v total | awk '{print $2}' | xargs -I xx mv xx /path/to/wrong-size/dir
+		find /path/to/full -name "*.dat" | xargs wc -l | grep -v 10240 | grep -v total | awk '{print $2}' | xargs -I xx mv xx /path/to/wrong-size/dir
 
 * take small (~1000) random sample from full into sample:
 
-	ls /path/to/full | shuf | head -1000 | xargs -I xx cp /path/to/full/xx /path/to/sample
+		ls /path/to/full | shuf | head -1000 | xargs -I xx cp /path/to/full/xx /path/to/sample
 
 * edit xcorr.conf, add locations of dataset directories
 * initial parameter refinement - set mode=ANALYSE, compile, run (see below), observe output
