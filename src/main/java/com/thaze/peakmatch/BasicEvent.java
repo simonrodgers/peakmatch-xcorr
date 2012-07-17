@@ -70,7 +70,7 @@ public class BasicEvent implements Event {
 			}
 		}
 
-		if (aPeaks.size() < conf.getTopNPeaksToMatch())
+		if (aPeaks.size() < conf.getTopKPeaksToMatch())
 			throw new EventException(getName() + " doesn't have enough peaks");
 
 		// sort by amplitude descending
@@ -81,8 +81,8 @@ public class BasicEvent implements Event {
 			}
 		});
 
-		maxSpatialPeaks = new int[conf.getTopNPeaksToMatch()];
-		minSpatialPeaks = new int[conf.getTopNPeaksToMatch()];
+		maxSpatialPeaks = new int[conf.getTopKPeaksToMatch()];
+		minSpatialPeaks = new int[conf.getTopKPeaksToMatch()];
 
 		// TOP_N_PEAKS max (peaks) and min (troughs)
 		for (int ii = 0; ii < maxSpatialPeaks.length; ii++)

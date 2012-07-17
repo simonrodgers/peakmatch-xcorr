@@ -14,13 +14,13 @@ public class EventProcessorConf {
 		if (!dataset.exists() || !dataset.isDirectory() || dataset.listFiles().length == 0)
 			throw new EventException("non-existent or empty dataset directory " + dataset);
 		b.setDataset(dataset);
-	
+		
 		File sampledataset = new File(props.getProperty(		"dataset.sample"));
 		if (!sampledataset.exists() || !sampledataset.isDirectory() || sampledataset.listFiles().length == 0)
 			throw new EventException("non-existent or empty sample dataset directory " + sampledataset);
 		b.setSampledataset(sampledataset);
 		
-		b.setTopNPeaksToMatch(getInt(props, 					"top-n-peaks"));
+		b.setTopKPeaksToMatch(getInt(props, 					"top-k-peaks"));
 		b.setSamplingStride(getInt(props, 						"sampling-stride"));
 		b.setTopAmplitudeThreshold(getDouble(props, 			"top-amplitude-threshold"));
 		b.setCandidateThreshold(getDouble(props, 				"candidate-threshold"));
@@ -71,7 +71,7 @@ public class EventProcessorConf {
 	public static class Builder{
 		private File dataset;
 		private File sampledataset;
-		private int topNPeaksToMatch;
+		private int TopKPeaksToMatch;
 		private int samplingStride;
 		private double topAmplitudeThreshold;
 		private double candidateThreshold;
@@ -108,12 +108,12 @@ public class EventProcessorConf {
 			this.sampledataset = sampledataset;
 			return this;
 		}
-		public int getTopNPeaksToMatch() {
-			return topNPeaksToMatch;
+		public int getTopKPeaksToMatch() {
+			return TopKPeaksToMatch;
 		}
-		public Builder setTopNPeaksToMatch(int topNPeaksToMatch) {
+		public Builder setTopKPeaksToMatch(int TopKPeaksToMatch) {
 			assertState();
-			this.topNPeaksToMatch = topNPeaksToMatch;
+			this.TopKPeaksToMatch = TopKPeaksToMatch;
 			return this;
 		}
 		public int getSamplingStride() {
@@ -155,7 +155,7 @@ public class EventProcessorConf {
 		public String toString() {
 			return "\tdataset: \t\t" + dataset + "\n"
 					+ "\tsampledataset: \t\t" + sampledataset + "\n"
-					+ "\ttopNPeaksToMatch: \t" + topNPeaksToMatch + "\n"
+					+ "\tTopKPeaksToMatch: \t" + TopKPeaksToMatch + "\n"
 					+ "\tsamplingStride: \t" + samplingStride + "\n"
 					+ "\ttopAmplitudeThreshold: \t" + topAmplitudeThreshold + "\n"
 					+ "\tcandidateThreshold: \t" + candidateThreshold + "\n"
@@ -205,8 +205,8 @@ public class EventProcessorConf {
 		return _builder.getSampledataset();
 	}
 
-	public int getTopNPeaksToMatch() {
-		return _builder.getTopNPeaksToMatch();
+	public int getTopKPeaksToMatch() {
+		return _builder.getTopKPeaksToMatch();
 	}
 
 	public int getSamplingStride() {

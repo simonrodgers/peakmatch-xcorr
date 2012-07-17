@@ -138,7 +138,7 @@ public class XCorrProcessor {
 		
 		Util.initialiseStats();
 		try (final BufferedWriter bw = new BufferedWriter(new FileWriter(XCORR_POSTPROCESS_FILE)) ){
-		
+			
 			long count=0;
 			for (Entry<Event, Collection<Event>> e: candidates.asMap().entrySet()){
 				FFTPreprocessedEvent fe1 = fftPreprocessedEventFactory.make(e.getKey());
