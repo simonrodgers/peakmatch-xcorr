@@ -58,6 +58,7 @@ inputs:
 * sample data set - all files in the `dataset.sample` directory
 
 outputs:
+* `xcorr.saved` - cached N^2 FFT xcorr values of sample events - used for false negative / positive analysis, cached because even a sample of ~1000 is relatively slow to calculate, especially if iterating parameter values vs. performance/accuracy
 * analysis written to the console
 
 2 - Peakmatch phase
@@ -74,12 +75,12 @@ while this is running, progress is printed to the console together with the proj
 
 3 - FFT Precache phase
 ------------------
-Fourier transform cross correlation process between events A and B:
+Fourier transform cross correlation process between normalised events A and B:
 
 1. Calculate FT of A
 2. Reverse B
 3. Calculate FT of B_reverse
-4. Calculate dot product of complex FT vectors
+4. Calculate complex dot product of FT vectors
 5. Calculate inverse FT of the dot product
 6. Return the real components of the inverse FT, the highest value is the cross-correlation value of the two events.
 
