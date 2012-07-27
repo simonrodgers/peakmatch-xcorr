@@ -9,7 +9,6 @@ import com.thaze.peakmatch.event.Event;
 import com.thaze.peakmatch.event.EventException;
 import com.thaze.peakmatch.event.EventPair;
 import com.thaze.peakmatch.event.EventPairCollector;
-import com.thaze.peakmatch.event.EventProcessorConf;
 import com.thaze.peakmatch.event.FFTPreprocessedEvent;
 
 
@@ -53,6 +52,7 @@ public class PeakMatchProcessor {
 		for (int aOffset : aOffsets) {
 			for (int bOffset : bOffsets) {
 
+				// tight loop - optimisation here
 				final int offset = aOffset - bOffset;
 				final int start = offset < 0 ? -offset : 0;
 				final int end = offset < 0 ? len : len - offset;

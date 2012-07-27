@@ -1,9 +1,11 @@
-package com.thaze.peakmatch.event;
+package com.thaze.peakmatch;
 
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Properties;
+
+import com.thaze.peakmatch.event.EventException;
 
 public class EventProcessorConf {
 	

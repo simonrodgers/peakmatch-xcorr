@@ -26,7 +26,6 @@ import com.thaze.peakmatch.event.Event;
 import com.thaze.peakmatch.event.EventException;
 import com.thaze.peakmatch.event.EventPair;
 import com.thaze.peakmatch.event.EventPairCollector;
-import com.thaze.peakmatch.event.EventProcessorConf;
 import com.thaze.peakmatch.event.FFTPreprocessedEvent;
 import com.thaze.peakmatch.event.FFTPreprocessedEventFactory;
 import com.thaze.peakmatch.event.MapCollector;
@@ -54,7 +53,7 @@ public class XCorrProcessor {
 		
 		long t0 = System.currentTimeMillis();
 		System.out.println();
-		System.out.println("*** Peak-Matched Sampled Brute Force X-Correlation ***");
+		System.out.println("*** Peak-matched sampled efficient cross-correlation ***");
 		
 		try{
 			XCorrProcessor p = new XCorrProcessor();
@@ -91,13 +90,13 @@ public class XCorrProcessor {
 		File[] fs = _conf.getDataset().listFiles();
 		
 		int count = 0;
-		Util.initialiseStats();
+		StateLogger sl = new StateLogger();
 		for (File f : fs){
 			Event e = new BasicEvent(f, _conf);
 			c.addToCache(new FFTPreprocessedEvent(e));
 			
 			if (++count % 1000 == 0)
-				System.out.println(Util.runningStats(count, fs.length));
+				System.out.println(sl.state(count, fs.length));
 		}
 		
 		c.commitIndex();
@@ -144,7 +143,7 @@ public class XCorrProcessor {
 		
 		System.out.println("loaded " + candidates.size() + " candidate pairs to test");
 		
-		Util.initialiseStats();
+		StateLogger sl = new StateLogger();
 		try (final BufferedWriter bw = new BufferedWriter(new FileWriter(XCORR_POSTPROCESS_FILE)) ){
 			
 			long count=0;
@@ -162,7 +161,7 @@ public class XCorrProcessor {
 					
 					count++;
 					if (count % 1000 == 0)
-						System.out.println(Util.runningStats(count, candidates.size()));
+						System.out.println(sl.state(count, candidates.size()));
 					
 					if (count % 10000 == 0)
 						System.out.println(fftPreprocessedEventFactory.stats());
@@ -181,7 +180,7 @@ public class XCorrProcessor {
 		System.out.println("starting peakmatch - " + totalPairs + " pairs");
 		
 		final AtomicLong count=new AtomicLong();
-		Util.initialiseStats();
+		final StateLogger sl = new StateLogger();
 		try (final BufferedWriter bw = new BufferedWriter(new FileWriter(XCORR_CANDIDATES_FILE)) ){
 			
 			EventPairCollector collector = new EventPairCollector(){
@@ -201,7 +200,7 @@ public class XCorrProcessor {
 					totalPairsComplete += pairsProcessed;
 					outerEventsComplete++;
 					if (outerEventsComplete % 100 == 0)
-						System.out.println(Util.runningStats(totalPairsComplete, totalPairs));
+						System.out.println(sl.state(totalPairsComplete, totalPairs));
 				}
 			};
 			
@@ -440,19 +439,19 @@ public class XCorrProcessor {
 		boolean fail=false;
 		File[] fs = _conf.getDataset().listFiles();
 		
-		Util.initialiseStats();
+		StateLogger sl = new StateLogger();
 		for (File f : fs){
 			try{
 				Event e = new BasicEvent(f, _conf);
 				data.add(e);
 				
 				if (data.size() % 1000 == 0){
-					System.out.println(Util.runningStats(data.size(), fs.length));
+					System.out.println(sl.state(data.size(), fs.length));
 					System.gc();
 				}
 			} catch (EventException e1){
 				System.err.println("failed to load: " + e1.getMessage());
-				fail=true;
+				fail=true; // don't fail immediately, finish loading events and then bug out
 			}
 		}
 		

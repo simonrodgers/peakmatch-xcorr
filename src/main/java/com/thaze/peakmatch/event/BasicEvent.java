@@ -11,6 +11,7 @@ import java.util.List;
 
 import org.apache.commons.lang.ArrayUtils;
 
+import com.thaze.peakmatch.EventProcessorConf;
 import com.thaze.peakmatch.Tuple;
 import com.thaze.peakmatch.Util;
 
