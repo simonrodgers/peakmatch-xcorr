@@ -2,17 +2,20 @@ package com.thaze.peakmatch;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import net.sf.json.JSONObject;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.math.complex.Complex;
 
-import com.thaze.peakmatch.event.Event;
-import com.thaze.peakmatch.event.FFTPreprocessedEvent;
-
 import vanilla.java.chronicle.Excerpt;
 import vanilla.java.chronicle.impl.IndexedChronicle;
+
+import com.thaze.peakmatch.event.Event;
+import com.thaze.peakmatch.event.FFTPreprocessedEvent;
 
 /**
  * Memory mapped fast lookup cache of event FFTs (forwards and reverse)
@@ -36,11 +39,18 @@ public class MMappedFFTCache {
 	private final IndexedChronicle chronicle;
 	private final JSONObject index;
 	
-	public enum CreationPolicy {DELETE_OLD, USE_EXISTING}
+	private final Map<String, Integer> indexReadOnlyMap; // for concurrent access
+	
+	public enum ReadWrite {READ, WRITE}
+	
+	private final ReadWrite rw;
 
-	public MMappedFFTCache(CreationPolicy policy) {
+	@SuppressWarnings("unchecked")
+	public MMappedFFTCache(ReadWrite rw) {
 		
-		if (policy == CreationPolicy.DELETE_OLD){
+		this.rw=rw;
+		
+		if (rw == ReadWrite.WRITE){
 			INDEXFILE.delete();
 			new File(CHRONICLEFILE + ".data").delete();
 			new File(CHRONICLEFILE + ".index").delete();
@@ -56,13 +66,15 @@ public class MMappedFFTCache {
 		} catch (IOException e){
 			throw new RuntimeException("failed to read/write to chronicle or index file", e);
 		}
+		
+		indexReadOnlyMap = Collections.unmodifiableMap(new ConcurrentHashMap<String, Integer>(index));
 	}
 
 	public FFTPreprocessedEvent read(Event event) {
 		
-		long key = getIndex(event.getName());
-		if (key == -1)
-			throw new IllegalStateException("event " + event.getName() + " FFT not precached");
+		Long key = getIndex(event.getName());
+		if (key == null)
+			throw new IllegalStateException("event " + event.getName() + " FFT not precached - make sure FFTPRECACHE mode run");
 		
 		Excerpt<IndexedChronicle> e = chronicle.createExcerpt();
 		if (!e.index(key))
@@ -99,11 +111,19 @@ public class MMappedFFTCache {
 			commitIndex();
 	}
 	
-	private long getIndex(String name) {
-		return index.optLong(name, -1);
+	private Long getIndex(String name) {
+		
+//		return index.optLong(name, -1);
+		Integer i = indexReadOnlyMap.get(name);
+		if (null == i)
+			return null;
+		return new Long(i.longValue());
 	}
 
 	public void addToCache(FFTPreprocessedEvent event) {
+		
+		if (rw != ReadWrite.WRITE)
+			throw new IllegalStateException("attempting to write to cache not in WRITE mode");
 		
 		Excerpt<IndexedChronicle> e = chronicle.createExcerpt();
 		

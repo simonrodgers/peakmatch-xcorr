@@ -5,24 +5,25 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.CacheStats;
 import com.google.common.cache.LoadingCache;
 import com.thaze.peakmatch.MMappedFFTCache;
-import com.thaze.peakmatch.MMappedFFTCache.CreationPolicy;
+import com.thaze.peakmatch.MMappedFFTCache.ReadWrite;
 
 public class FFTPreprocessedEventFactory {
 	
-	private final MMappedFFTCache fftcache = new MMappedFFTCache(CreationPolicy.USE_EXISTING);
+	private final MMappedFFTCache fftcache = new MMappedFFTCache(ReadWrite.READ);
 	
 	// smallish JVM cache ontop of memory mapped file
-	private final LoadingCache<Event, FFTPreprocessedEvent> cache = CacheBuilder
-			.newBuilder()
+	private final LoadingCache<Event, FFTPreprocessedEvent> cache;
+	
+	public FFTPreprocessedEventFactory(int threads){
+		cache = CacheBuilder.newBuilder()
+			.concurrencyLevel(threads)
 			.maximumSize(2000)
 			.build(new CacheLoader<Event, FFTPreprocessedEvent>() {
 				public FFTPreprocessedEvent load(Event e) {
 					return fftcache.read(e);
-//					return new FFTPreprocessedEvent(e);
+//							return new FFTPreprocessedEvent(e);
 				}
 			});
-	
-	public FFTPreprocessedEventFactory(){
 	}
 
 	public FFTPreprocessedEvent make(Event e) {

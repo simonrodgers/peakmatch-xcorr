@@ -40,6 +40,7 @@ public class EventProcessorConf {
 			throw new EventException("invalid mode value '" + props.getProperty("mode") + "'");
 		}
 		b.setVerbose(Boolean.parseBoolean(props.getProperty(	"verbose")));
+		b.setThreads(Integer.parseInt(props.getProperty(		"threads")));
 		
 		return b;
 	}
@@ -86,6 +87,7 @@ public class EventProcessorConf {
 		private int expectedFileLineCount;
 		private Mode mode;
 		private boolean verbose;
+		private int threads;
 		
 		boolean _built;
 		
@@ -202,6 +204,16 @@ public class EventProcessorConf {
 			this.verbose = verbose;
 			return this;
 		}
+
+		public int getThreads() {
+			return threads;
+		}
+
+		public Builder setThreads(int threads) {
+			assertState();
+			this.threads = threads;
+			return this;
+		}
 	}
 
 	public File getDataset() {
@@ -238,6 +250,9 @@ public class EventProcessorConf {
 	}
 	public Mode getMode() {
 		return _builder.getMode();
+	}
+	public int getThreads(){
+		return _builder.getThreads();
 	}
 	
 	public int countAllEvents() {

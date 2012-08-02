@@ -55,7 +55,14 @@ public final class Util {
 		return r;
 	}
 	
-	private static final FastFourierTransformer FFT = new FastFourierTransformer();
+	// FastFourierTransformer contains some synchronized stuff which breaks multithreading if there's only one static FFT object
+//	private static final FastFourierTransformer FFT = new FastFourierTransformer();
+	private static final ThreadLocal<FastFourierTransformer> FFT = new ThreadLocal<FastFourierTransformer>(){
+		@Override
+		protected FastFourierTransformer initialValue() {
+			return new FastFourierTransformer();
+		}
+	};
 	
 	public static double[] fftXCorr(Event a, Event b) {
 		return fftXCorr(new FFTPreprocessedEvent(a), new FFTPreprocessedEvent(b));
@@ -67,7 +74,7 @@ public final class Util {
 		for (int ii = 0; ii < a.getForwardFFT().length; ii++)
 			product[ii] = a.getForwardFFT()[ii].multiply(b.getReverseFFT()[ii]);
 
-		final Complex[] inverse = FFT.inversetransform(product);
+		final Complex[] inverse = FFT.get().inversetransform(product);
 
 		final double[] reals = new double[inverse.length];
 		int ii = 0;
@@ -78,7 +85,7 @@ public final class Util {
 	}
 	
 	public static Complex[] FFTtransform(double[] reals){
-		return FFT.transform(reals);
+		return FFT.get().transform(reals);
 	}
 	
 	public static double getHighest(double[] d) {

@@ -18,7 +18,7 @@ public class StateLogger {
 		long t = System.currentTimeMillis() - t0;
 		
 		double each = (double)t/done;
-		String eachStr = each < 1 ? Util.NF.format(each*1000)+" μs" : Util.NF.format(each)+" ms";
+		String eachStr = each < 1 ? Util.NF.format(each*1000)+" microsec" : Util.NF.format(each)+" ms";
 		
 		String finishStr = Util.periodToString(t * (total-done) / done);
 		String takenStr = Util.periodToString(t);

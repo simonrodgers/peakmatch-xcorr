@@ -156,11 +156,12 @@ Dependencies (via maven)
 * apache commons-math
 * google guava
 * joda-time
-* chronicle (see https://github.com/peter-lawrey/Java-Chronicle)
 * net.sf.json-lib
+* chronicle (see https://github.com/peter-lawrey/Java-Chronicle) - not in any central mvn repo, install locally (see below)
 
-Compilation
------------
+Compilation and library installation
+---------------------
+	mvn install:install-file -Dfile=lib/chronicle-1.2-SNAPSHOT.jar -DgroupId=vanilla.java -DartifactId=chronicle -Dversion=1.2-SNAPSHOT -Dpackaging=jar
     mvn assembly:single
 
 Usage

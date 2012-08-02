@@ -11,7 +11,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.apache.commons.math.complex.Complex;
+import org.apache.commons.math.transform.FastFourierTransformer;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -20,7 +27,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
-import com.thaze.peakmatch.MMappedFFTCache.CreationPolicy;
+import com.thaze.peakmatch.MMappedFFTCache.ReadWrite;
 import com.thaze.peakmatch.event.BasicEvent;
 import com.thaze.peakmatch.event.Event;
 import com.thaze.peakmatch.event.EventException;
@@ -42,11 +49,12 @@ public class XCorrProcessor {
 	
 	private final EventProcessorConf _conf;
 	private final PeakMatchProcessor pmProcessor;
-	private final FFTPreprocessedEventFactory fftPreprocessedEventFactory = new FFTPreprocessedEventFactory();
+	private final FFTPreprocessedEventFactory fftPreprocessedEventFactory;
 	
 	public XCorrProcessor() throws EventException {
 		_conf = EventProcessorConf.buildFromConf(CONF_FILE).build();
 		pmProcessor = new PeakMatchProcessor(_conf);
+		fftPreprocessedEventFactory = new FFTPreprocessedEventFactory(_conf.getThreads());
 	}
 
 	public static void main(String[] args) {
@@ -72,6 +80,8 @@ public class XCorrProcessor {
 			break; case POSTPROCESS:
 				p.doPostProcess();
 			}
+			
+			// TODO brute force mode
 		} catch (EventException e){
 			System.err.println("error: " + e.getMessage());
 			if (null != e.getCause())
@@ -85,7 +95,7 @@ public class XCorrProcessor {
 		
 		System.out.println("loading events for precache ...");
 		
-		MMappedFFTCache c = new MMappedFFTCache(CreationPolicy.DELETE_OLD);
+		MMappedFFTCache c = new MMappedFFTCache(ReadWrite.WRITE);
 
 		File[] fs = _conf.getDataset().listFiles();
 		
@@ -103,6 +113,88 @@ public class XCorrProcessor {
 		
 		System.out.println("precached " + count + " events");
 	}
+	
+//	private void doPostProcess() throws EventException {
+//		
+//		// load all events and self-index by name
+//		final List<Event> events = loadAllEvents();
+//		final Map<String, Event> eventsMap = Maps.uniqueIndex(events, new Function<Event, String>(){
+//			@Override
+//			public String apply(Event e) {
+//				return e.getName();
+//			}
+//		});
+//		
+//		// load all candidates, arrange as map of {Event : [candidate Event]} for iteration
+//		Multimap<Event, Event> candidates = HashMultimap.create();
+//		try (BufferedReader br = new BufferedReader(new FileReader(XCORR_CANDIDATES_FILE)) ){
+//			String line;
+//			while (null != (line = br.readLine())){
+//				
+//				String[] sa = line.split("\t");
+//				if (sa.length != 3){
+//					System.err.println("line invalid: '" + line + "'");
+//					continue;
+//				}
+//				
+//				Event e1 = eventsMap.get(sa[0]);
+//				if (null == e1)
+//					System.err.println("event " + sa[0] + " not found");
+//				Event e2 = eventsMap.get(sa[1]);
+//				if (null == e2)
+//					System.err.println("event " + sa[1] + " not found");
+//				
+//				candidates.put(e1, e2);
+//			}
+//		} catch (IOException e) {
+//			System.err.println("error reading file " + XCORR_CANDIDATES_FILE);
+//			throw new EventException(e);
+//		}
+//		
+//		System.out.println("loaded " + candidates.size() + " candidate pairs to test");
+//		
+//		StateLogger sl = new StateLogger();
+//		try (final BufferedWriter bw = new BufferedWriter(new FileWriter(XCORR_POSTPROCESS_FILE)) ){
+//			
+//			long count=0;
+//			for (Entry<Event, Collection<Event>> e: candidates.asMap().entrySet()){
+//				FFTPreprocessedEvent fe1 = fftPreprocessedEventFactory.make(e.getKey());
+//				
+//				for (Event e2: e.getValue()){
+//					FFTPreprocessedEvent fe2 = fftPreprocessedEventFactory.make(e2);
+//					
+////					double[] xcorr = Util.fftXCorr(fe1, fe2);
+//					final Complex[] product = new Complex[fe1.getForwardFFT().length];
+//					for (int ii = 0; ii < fe1.getForwardFFT().length; ii++)
+//						product[ii] = fe1.getForwardFFT()[ii].multiply(fe2.getReverseFFT()[ii]);
+//
+//					final Complex[] inverse = FFT.inversetransform(product);
+//
+//					final double[] xcorr = new double[inverse.length];
+//					int ii = 0;
+//					for (Complex c : inverse)
+//						xcorr[ii++] = c.getReal();
+////					/////////////////////////////////////
+//
+//					
+//					double best = Util.getHighest(xcorr);
+//					
+//					if (best > _conf.getFinalThreshold())
+//						bw.write(fe1.getName() + "\t" + fe2.getName() + "\t" + best + "\n");
+//					
+//					count++;
+//					if (count % 1000 == 0)
+//						System.out.println(sl.state(count, candidates.size()));
+//					
+//					if (count % 10000 == 0)
+//						System.out.println(fftPreprocessedEventFactory.stats());
+//				}
+//			}
+//		} catch (IOException e) {
+//			System.err.println("error writing file " + XCORR_POSTPROCESS_FILE);
+//			throw new EventException(e);
+//		}
+//	}
 
 	private void doPostProcess() throws EventException {
 		
@@ -116,7 +208,7 @@ public class XCorrProcessor {
 		});
 		
 		// load all candidates, arrange as map of {Event : [candidate Event]} for iteration
-		Multimap<Event, Event> candidates = HashMultimap.create();
+		final Multimap<Event, Event> candidates = HashMultimap.create();
 		try (BufferedReader br = new BufferedReader(new FileReader(XCORR_CANDIDATES_FILE)) ){
 			String line;
 			while (null != (line = br.readLine())){
@@ -143,29 +235,53 @@ public class XCorrProcessor {
 		
 		System.out.println("loaded " + candidates.size() + " candidate pairs to test");
 		
-		StateLogger sl = new StateLogger();
+		ExecutorService pool = Executors.newFixedThreadPool(_conf.getThreads());
+		
+		final StateLogger sl = new StateLogger();
+		final AtomicInteger count = new AtomicInteger();
+		
 		try (final BufferedWriter bw = new BufferedWriter(new FileWriter(XCORR_POSTPROCESS_FILE)) ){
 			
-			long count=0;
 			for (Entry<Event, Collection<Event>> e: candidates.asMap().entrySet()){
-				FFTPreprocessedEvent fe1 = fftPreprocessedEventFactory.make(e.getKey());
+				final FFTPreprocessedEvent fe1 = fftPreprocessedEventFactory.make(e.getKey());
+				final Collection<Event> es = e.getValue();
 				
-				for (Event e2: e.getValue()){
-					FFTPreprocessedEvent fe2 = fftPreprocessedEventFactory.make(e2);
-					
-					double[] xcorr = Util.fftXCorr(fe1, fe2);
-					double best = Util.getHighest(xcorr);
-					
-					if (best > _conf.getFinalThreshold())
-						bw.write(fe1.getName() + "\t" + fe2.getName() + "\t" + best + "\n");
-					
-					count++;
-					if (count % 1000 == 0)
-						System.out.println(sl.state(count, candidates.size()));
-					
-					if (count % 10000 == 0)
-						System.out.println(fftPreprocessedEventFactory.stats());
-				}
+				pool.execute(new Runnable() {
+					@Override
+					public void run() {
+						for (Event e2: es){
+							FFTPreprocessedEvent fe2 = fftPreprocessedEventFactory.make(e2);
+							
+							double[] xcorr = Util.fftXCorr(fe1, fe2);
+							
+							double best = Util.getHighest(xcorr);
+							
+							if (best > _conf.getFinalThreshold()){
+								synchronized(bw){
+									try {
+										bw.write(fe1.getName() + "\t" + fe2.getName() + "\t" + best + "\n");
+									} catch (IOException e) {
+										throw new RuntimeException(e);
+									}
+								}
+							}
+							
+							int c = count.incrementAndGet();
+							if (c % 1000 == 0)
+								System.out.println(sl.state(c, candidates.size()));
+							
+							if (c % 10000 == 0)
+								System.out.println(fftPreprocessedEventFactory.stats());
+						}
+					}
+				});
+			}
+			
+			try {
+				pool.shutdown();
+				pool.awaitTermination(99999, TimeUnit.DAYS);
+			} catch (InterruptedException e1) {
+				e1.printStackTrace();
 			}
 		} catch (IOException e) {
 			System.err.println("error writing file " + XCORR_POSTPROCESS_FILE);
@@ -291,7 +407,7 @@ public class XCorrProcessor {
 			extrapolatedForAllMS = (long)(allPairs * eachMicrosec / 1000);
 			
 			System.out.println(events.size() + " events sampled -> " + pairs + " distinct pairs");
-			System.out.println(tPM + " ms, " + (long)eachMicrosec + "μs each, " + (long)perSec + "/sec");
+			System.out.println(tPM + " ms, " + (long)eachMicrosec + "microsec each, " + (long)perSec + "/sec");
 			
 			System.out.println("Peakmatch method - extrapolation to all events (" + allPairs + " distinct pairs of " + _conf.countAllEvents() + " events): " + Util.periodToString(extrapolatedForAllMS));
 		}
@@ -312,7 +428,7 @@ public class XCorrProcessor {
 			
 			System.out.println(candidates.size() + " pairs post-processed with full FFT xcorr -> " + finalMatches.size() + " final matches");
 			System.out.println("1 / " + multiple + " of entire eventpair space necessary to full xcorr");
-			System.out.println(tPostProcess + " ms, " + eachMicrosec + "μs each, " + perSec + "/sec");
+			System.out.println(tPostProcess + " ms, " + eachMicrosec + "microsec each, " + perSec + "/sec");
 			System.out.println("extrapolation to all events (" + allPairs + " distinct pairs of " + _conf.countAllEvents() + " events): " + Util.periodToString(extrapolatedPMForAllMS));
 			
 			long totalPMExtrapolation = extrapolatedPMForAllMS + extrapolatedForAllMS;
@@ -418,7 +534,7 @@ public class XCorrProcessor {
 				long perSec = 1000000 / eachMicrosec;
 				long allPairs = _conf.countAllEvents()*_conf.countAllEvents()/2;
 				long extrapolatedForAllMS = allPairs * eachMicrosec / 1000;
-				System.out.println("generated and cached " + count + " full FFT xcorr: " + tMS/1000 + " sec, " + eachMicrosec + "μs each, " + perSec + "/sec");
+				System.out.println("generated and cached " + count + " full FFT xcorr: " + tMS/1000 + " sec, " + eachMicrosec + "microsec each, " + perSec + "/sec");
 				System.out.println("extrapolation to full FFT xcorr for " + allPairs + " distinct pairs of " + _conf.countAllEvents() + " events: " + Util.periodToString(extrapolatedForAllMS));
 				System.out.println("(delete file " + XCORR_SAMPLE_SAVE_FILE + " to repeat)");
 			} catch (IOException e) {
