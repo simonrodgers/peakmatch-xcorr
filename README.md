@@ -104,6 +104,8 @@ while this is running, progress is printed to the console together with the proj
 -----------------
 Having pre-calculated and stored the FFT values for each event, perform full FFT cross correlation on each candidate, emitting only pairs whose FFT xcorr value is higher than the `final-threshold` config value
 
+Postprocessing uses multi-threading. set the value of `threads` to match the number of processor cores for best performance.
+
 inputs:
 * `xcorr.candidates` - output from peakmatch phase
 

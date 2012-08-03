@@ -3,6 +3,10 @@ package com.thaze.peakmatch;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.Maps;
 import com.thaze.peakmatch.event.Event;
@@ -19,27 +23,44 @@ public class PeakMatchProcessor {
 		_conf=conf;
 	}
 	
-	// peak-matching sampled brute force xcorrelation estimation
-	public void peakmatchCandidates(List<Event> events, EventPairCollector successCollector, EventPairCollector rejectionCollector) throws EventException{
+	public void peakmatchCandidates(final List<Event> events, final EventPairCollector successCollector, final EventPairCollector rejectionCollector) throws EventException{
 
+		ExecutorService pool = Executors.newFixedThreadPool(_conf.getThreads());
+		
 		for (int ii = 0; ii < events.size(); ii++) {
 			final Event a = events.get(ii);
-
-			for (int jj = ii+1; jj < events.size(); jj++) {
-				final Event b = events.get(jj);
-				
-				double bestPositivePeakMatchXCorr = peakmatchSpecificOffset(a, b, a.getMaxSpatialPeaks(), b.getMaxSpatialPeaks());
-				double bestNegativePeakMatchXCorr = peakmatchSpecificOffset(a, b, a.getMinSpatialPeaks(), b.getMinSpatialPeaks());
-				
-				double best = Math.max(bestPositivePeakMatchXCorr, bestNegativePeakMatchXCorr);
-				
-				if (best > _conf.getCandidateThreshold())
-					successCollector.collect(new EventPair(a, b).getKey(), best);
-				else if (null != rejectionCollector)
-					rejectionCollector.collect(new EventPair(a, b).getKey(), best);
-			}
+			final int start = ii+1;
 			
-			successCollector.notifyOuterComplete(events.size()-ii-1);
+			pool.submit(new Callable<Void>() {
+				@Override
+				public Void call() throws EventException {
+
+					for (int jj = start; jj < events.size(); jj++) {
+						final Event b = events.get(jj);
+						
+						double bestPositivePeakMatchXCorr = peakmatchSpecificOffset(a, b, a.getMaxSpatialPeaks(), b.getMaxSpatialPeaks());
+						double bestNegativePeakMatchXCorr = peakmatchSpecificOffset(a, b, a.getMinSpatialPeaks(), b.getMinSpatialPeaks());
+						
+						double best = Math.max(bestPositivePeakMatchXCorr, bestNegativePeakMatchXCorr);
+						
+						if (best > _conf.getCandidateThreshold())
+							successCollector.collect(new EventPair(a, b).getKey(), best);
+						else if (null != rejectionCollector)
+							rejectionCollector.collect(new EventPair(a, b).getKey(), best);
+					}
+					
+					successCollector.notifyOuterComplete(events.size()-start);
+					
+					return null;
+				}
+			});
+		}
+		
+		try {
+			pool.shutdown();
+			pool.awaitTermination(99999, TimeUnit.DAYS);
+		} catch (InterruptedException e1) {
+			e1.printStackTrace();
 		}
 	}
 	
@@ -83,10 +104,10 @@ public class PeakMatchProcessor {
 	}
 	
 	
-	public Map<String, Double> fullFFTXCorr(Set<String> candidateKeys, List<Event> events) {
+	public Map<String, Double> fullFFTXCorr(final Set<String> candidateKeys, final List<Event> events) {
 		
-		Map<String, Double> finalMatches = Maps.newHashMap();
-		
+		final Map<String, Double> finalMatches = Maps.newHashMap();
+
 		for (int ii = 0; ii < events.size(); ii++) {
 			final Event a = events.get(ii);
 

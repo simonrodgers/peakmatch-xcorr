@@ -8,7 +8,7 @@ import com.google.common.collect.Maps;
 
 public class MapCollector implements EventPairCollector {
 	
-	private final Map<String, Double> data = Maps.newHashMap();
+	private final Map<String, Double> data = Maps.newConcurrentMap();
 	
 	public MapCollector(){
 	}

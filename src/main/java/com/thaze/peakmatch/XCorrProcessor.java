@@ -11,14 +11,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-
-import org.apache.commons.math.complex.Complex;
-import org.apache.commons.math.transform.FastFourierTransformer;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -164,9 +162,9 @@ public class XCorrProcessor {
 				final FFTPreprocessedEvent fe1 = fftPreprocessedEventFactory.make(e.getKey());
 				final Collection<Event> es = e.getValue();
 				
-				pool.execute(new Runnable() {
+				pool.submit(new Callable<Void>() {
 					@Override
-					public void run() {
+					public Void call() throws IOException {
 						for (Event e2: es){
 							FFTPreprocessedEvent fe2 = fftPreprocessedEventFactory.make(e2);
 							
@@ -176,11 +174,7 @@ public class XCorrProcessor {
 							
 							if (best > _conf.getFinalThreshold()){
 								synchronized(bw){
-									try {
-										bw.write(fe1.getName() + "\t" + fe2.getName() + "\t" + best + "\n");
-									} catch (IOException e) {
-										throw new RuntimeException(e);
-									}
+									bw.write(fe1.getName() + "\t" + fe2.getName() + "\t" + best + "\n");
 								}
 							}
 							
@@ -191,6 +185,7 @@ public class XCorrProcessor {
 							if (c % 10000 == 0)
 								System.out.println(fftPreprocessedEventFactory.stats());
 						}
+						return null;
 					}
 				});
 			}
@@ -218,10 +213,11 @@ public class XCorrProcessor {
 		try (final BufferedWriter bw = new BufferedWriter(new FileWriter(XCORR_CANDIDATES_FILE)) ){
 			
 			EventPairCollector collector = new EventPairCollector(){
-				long totalPairsComplete = 0;
-				int outerEventsComplete = 0;
+				AtomicLong totalPairsComplete = new AtomicLong();
+				AtomicInteger outerEventsComplete = new AtomicInteger();
+				
 				@Override
-				public void collect(String key, double score) throws EventException{
+				public synchronized void collect(String key, double score) throws EventException{
 					try {
 						bw.write(key + "\t" + score + "\n");
 					} catch (IOException e){
@@ -231,10 +227,9 @@ public class XCorrProcessor {
 				}
 				
 				public void notifyOuterComplete(int pairsProcessed){
-					totalPairsComplete += pairsProcessed;
-					outerEventsComplete++;
-					if (outerEventsComplete % 100 == 0)
-						System.out.println(sl.state(totalPairsComplete, totalPairs));
+					totalPairsComplete.addAndGet(pairsProcessed);
+					if (outerEventsComplete.incrementAndGet() % 100 == 0)
+						System.out.println(sl.state(totalPairsComplete.get(), totalPairs));
 				}
 			};
 			

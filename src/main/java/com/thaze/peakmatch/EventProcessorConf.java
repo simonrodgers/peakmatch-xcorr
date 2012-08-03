@@ -172,6 +172,7 @@ public class EventProcessorConf {
 					+ "\texpectedFileLineCount: \t" + expectedFileLineCount + "\n" 
 					+ "\tmode: \t\t\t" + mode + "\n"
 					+ "\tverbose: \t\t" + verbose + "\n"
+					+ "\tthreads: \t\t" + threads + "\n"
 					;
 		}
 
