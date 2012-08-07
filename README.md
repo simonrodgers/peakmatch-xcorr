@@ -164,6 +164,9 @@ Dependencies (via maven)
 Compilation and library installation
 ---------------------
 	mvn install:install-file -Dfile=lib/chronicle-1.2-SNAPSHOT.jar -DgroupId=vanilla.java -DartifactId=chronicle -Dversion=1.2-SNAPSHOT -Dpackaging=jar
+	(only need to do this once)
+	
+	mvn compile
     mvn assembly:single
 
 Usage
