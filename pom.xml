@@ -21,7 +21,11 @@
 	</properties>
 
 	<dependencies>
-
+		<!-- <dependency>
+			<groupId>jgrapht</groupId>
+			<artifactId>jgrapht</artifactId>
+			<version>0.7.3</version>
+		</dependency> -->
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-math</artifactId>
@@ -53,14 +57,26 @@
 			<version>2.4</version>
 			<classifier>jdk15</classifier>
 		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.4</version>
+			<scope>test</scope>
+		</dependency>
+		<!-- <dependency>
+			<groupId>org.functionaljava</groupId>
+			<artifactId>functionaljava</artifactId>
+			<version>3.0</version>
+		</dependency> -->
 
 
 		<dependency>
 			<groupId>vanilla.java</groupId>
 			<artifactId>chronicle</artifactId>
 			<version>1.2-SNAPSHOT</version>
-			<!-- 
-			<scope>system</scope>
+			<!-- don't add system scope, it screws up assembly. just install on the remote system:
+				mvn install:install-file -Dfile=lib/chronicle-1.2-SNAPSHOT.jar -DgroupId=vanilla.java -DartifactId=chronicle -Dversion=1.2-SNAPSHOT -Dpackaging=jar			
+			<scope>system</scope> 
 			<systemPath>${basedir}/lib/chronicle-1.2-SNAPSHOT.jar</systemPath> 
 			-->
 		</dependency>

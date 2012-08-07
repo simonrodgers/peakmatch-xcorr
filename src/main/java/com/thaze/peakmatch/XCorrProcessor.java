@@ -44,6 +44,7 @@ public class XCorrProcessor {
 	public static final String XCORR_SAMPLE_SAVE_FILE = "xcorr.saved";
 	public static final String XCORR_CANDIDATES_FILE = "xcorr.candidates";
 	public static final String XCORR_POSTPROCESS_FILE = "xcorr.postprocess";
+	public static final String XCORR_BRUTEFORCE_FILE = "xcorr.bruteforce";
 	
 	private final EventProcessorConf _conf;
 	private final PeakMatchProcessor pmProcessor;
@@ -52,7 +53,7 @@ public class XCorrProcessor {
 	public XCorrProcessor() throws EventException {
 		_conf = EventProcessorConf.buildFromConf(CONF_FILE).build();
 		pmProcessor = new PeakMatchProcessor(_conf);
-		fftPreprocessedEventFactory = new FFTPreprocessedEventFactory(_conf.getThreads());
+		fftPreprocessedEventFactory = new FFTPreprocessedEventFactory(_conf.getThreads(), _conf.getFFTMemoryCacheSize());
 	}
 
 	public static void main(String[] args) {
@@ -77,9 +78,9 @@ public class XCorrProcessor {
 				p.doFFTPrecache();
 			break; case POSTPROCESS:
 				p.doPostProcess();
+			break; case BRUTEFORCE:
+				p.doBruteForce();
 			}
-			
-			// TODO brute force mode
 		} catch (EventException e){
 			System.err.println("error: " + e.getMessage());
 			if (null != e.getCause())
@@ -89,6 +90,64 @@ public class XCorrProcessor {
 		System.out.println("*** done [" + (System.currentTimeMillis()-t0) + " ms] ***");
 	}
 	
+	private void doBruteForce() throws EventException {
+		System.out.println("brute force mode");
+		
+		final List<Event> events = loadAllEvents();
+		
+		ExecutorService pool = Executors.newFixedThreadPool(_conf.getThreads());
+		
+		final StateLogger sl = new StateLogger();
+		final AtomicInteger count = new AtomicInteger();
+		final long totalSize = events.size() * events.size() / 2;
+		
+		try (final BufferedWriter bw = new BufferedWriter(new FileWriter(XCORR_BRUTEFORCE_FILE)) ){
+		
+			for (int ii = 0; ii < events.size(); ii++) {
+				final FFTPreprocessedEvent fe1 = fftPreprocessedEventFactory.make(events.get(ii));
+				final int start = ii+1;
+				
+				pool.submit(new Callable<Void>() {
+					@Override
+					public Void call() throws IOException {
+						for (int jj = start; jj < events.size(); jj++) {
+							
+							FFTPreprocessedEvent fe2 = fftPreprocessedEventFactory.make(events.get(jj));
+							
+							double[] xcorr = Util.fftXCorr(fe1, fe2);
+							
+							double best = Util.getHighest(xcorr);
+							
+							if (best > _conf.getFinalThreshold()){
+								synchronized(bw){
+									bw.write(fe1.getName() + "\t" + fe2.getName() + "\t" + best + "\n");
+								}
+							}
+							
+							int c = count.incrementAndGet();
+							if (c % 1000 == 0)
+								System.out.println(sl.state(c, totalSize));
+							
+							if (c % 10000 == 0)
+								System.out.println(fftPreprocessedEventFactory.stats());
+						}
+						return null;
+					}
+				});
+			}
+		} catch (IOException e) {
+			System.err.println("error writing file " + XCORR_BRUTEFORCE_FILE);
+			throw new EventException(e);
+		}
+		
+		try {
+			pool.shutdown();
+			pool.awaitTermination(99999, TimeUnit.DAYS);
+		} catch (InterruptedException e1) {
+			e1.printStackTrace();
+		}
+	}
+
 	private void doFFTPrecache() throws EventException {
 		
 		System.out.println("loading events for precache ...");

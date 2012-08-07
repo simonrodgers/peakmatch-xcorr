@@ -14,20 +14,25 @@ public class FFTPreprocessedEventFactory {
 	// smallish JVM cache ontop of memory mapped file
 	private final LoadingCache<Event, FFTPreprocessedEvent> cache;
 	
-	public FFTPreprocessedEventFactory(int threads){
+	private final boolean useCache;
+	
+	public FFTPreprocessedEventFactory(int threads, int cacheSize){
 		cache = CacheBuilder.newBuilder()
 			.concurrencyLevel(threads)
-			.maximumSize(2000)
+			.maximumSize(cacheSize)
 			.build(new CacheLoader<Event, FFTPreprocessedEvent>() {
 				public FFTPreprocessedEvent load(Event e) {
 					return fftcache.read(e);
-//							return new FFTPreprocessedEvent(e);
 				}
 			});
+		
+		useCache = cacheSize > 0;
 	}
 
 	public FFTPreprocessedEvent make(Event e) {
-		return cache.getUnchecked(e);
+		if (useCache)
+			return cache.getUnchecked(e);
+		return fftcache.read(e);
 	}
 	
 	public CacheStats stats(){
