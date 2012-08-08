@@ -128,7 +128,7 @@ public class XCorrProcessor {
 							if (c % 1000 == 0)
 								System.out.println(sl.state(c, totalSize));
 							
-							if (c % 10000 == 0)
+							if (c % 10000 == 0 && fftPreprocessedEventFactory.isUseCache())
 								System.out.println(fftPreprocessedEventFactory.stats());
 						}
 						return null;

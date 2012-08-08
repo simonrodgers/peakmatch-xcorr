@@ -30,12 +30,16 @@ public class FFTPreprocessedEventFactory {
 	}
 
 	public FFTPreprocessedEvent make(Event e) {
-		if (useCache)
+		if (isUseCache())
 			return cache.getUnchecked(e);
 		return fftcache.read(e);
 	}
 	
 	public CacheStats stats(){
 		return cache.stats();
+	}
+
+	public boolean isUseCache() {
+		return useCache;
 	}
 }

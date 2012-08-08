@@ -25,8 +25,8 @@ The approximation step, with appropriately chosen parameters, typically takes in
 
 The process has four phases:
 
-1 - Analysis phase
---------------
+1 - Analysis Phase
+------------------
 * Performs a full process run on a relatively small sample (~1000 events, to be prepared by user) - peakmatch and FFT xcorr
 * analyses the accuracy (false positive and false negative rate)
 * analyses the performance (extrapolates estimate to full data set)
@@ -62,8 +62,10 @@ outputs:
 * analysis written to the console
 
 2 - Peakmatch phase
----------------
+-------------------
 Having chosen suitable parameters in the Analysis phase, generate approximate candidates for subsequent post-processing across the full data set. emit only candidates whose approximated xcorr value is higher than `candidate-threshold`. This figure will necessarily be lower than the real xcorr value and the threshold should accordingly be set lower than `final-threshold`.
+
+Uses multi-threading. set the value of `threads` to match the number of processor cores for best performance.
 
 inputs:
 * full data set - all files in the `dataset.full` directory
@@ -74,15 +76,15 @@ outputs:
 while this is running, progress is printed to the console together with the projected finish time.
 
 3 - FFT Precache phase
-------------------
-Fourier transform cross correlation process between normalised events A and B:
+----------------------
+The fourier transform cross correlation process between normalised events A and B is as follows:
 
-1. Calculate FT of A
+1. Calculate fourier transform of A
 2. Reverse B
-3. Calculate FT of B_reverse
-4. Calculate complex dot product of FT vectors
-5. Calculate inverse FT of the dot product
-6. Return the real components of the inverse FT, the highest value is the cross-correlation value of the two events.
+3. Calculate fourier transform of B_reverse
+4. Calculate complex dot product of these two transform vectors
+5. Calculate inverse fourier transform of the dot product
+6. Return the real components of the inverse fourier transform, the highest value is the cross-correlation value of the two events.
 
 Steps 1, 2 and 3 are pre-calculated for each event to save a significant amount of time per calculation step. However, they occupy a large amount of memory (significantly more than for peakmatch - 3000 events took more than 2GB). This means that for large values of n they cannot be held in memory together on any reasonable size machine. To ensure fast loading, they are pre-calculated and put in a large [memory-mapped file](http://en.wikipedia.org/wiki/Memory-mapped_file) - this can be arbitrary size (up to the size of the disk), occupies negligible heap memory, and takes advantage of the operating system page cache to return the pre-calculated complex FT vectors for an event.
 
@@ -101,22 +103,40 @@ outputs:
 while this is running, progress is printed to the console together with the projected finish time.
 
 4 - Postprocess phase
------------------
-Having pre-calculated and stored the FFT values for each event, perform full FFT cross correlation on each candidate, emitting only pairs whose FFT xcorr value is higher than the `final-threshold` config value
+---------------------
+Having pre-calculated and stored the FFT values for each event in `dataset.full`, and having run a `PEAKMATCH` operation, perform full FFT cross correlation on each candidate, emitting only pairs whose FFT xcorr value is higher than the `final-threshold` config value
 
-Postprocessing uses multi-threading. set the value of `threads` to match the number of processor cores for best performance.
+Uses multi-threading. set the value of `threads` to match the number of processor cores for best performance.
+
+Optionally uses an internal [LRU cache](http://en.wikipedia.org/wiki/Cache_algorithms#Least_Recently_Used) within the JVM, in addition to the memory-mapped file. Set the size of this cache by modifying the `fft-memory-cache-size` config parameter, or set to zero to disable this. 
 
 inputs:
-* `xcorr.candidates` - output from peakmatch phase
+* `xcorr.candidates` - output from `PEAKMATCH` phase
+* `fftcache.chronicle.data`, `fftcache.chronicle.index`, `fftcache.index.json` - output from `FFTPRECACHE` phase
 
 outputs:
 * `xcorr.postprocess` - same format as `xcorr.candidates`, one tab-separated line per validated candidate pair and their FFT xcorr value
 
 while this is running, progress is printed to the console together with the projected finish time.
 
+Brute force mode
+----------------
+Not intended for large-scale usage; this performs a full FFT cross-correlation between all events in the `dataset.full` folder, and emits pairs with an xcorr value higher than the `final-threshold` config value. 
+
+Similarly to the `POSTPROCESS` phase, a `FFTPRECACHE` operation must have been run beforehand.
+
+Uses multi-threading. set the value of `threads` to match the number of processor cores for best performance.
+
+inputs:
+* full data set - all files in the `dataset.full` directory
+* `fftcache.chronicle.data`, `fftcache.chronicle.index`, `fftcache.index.json` - output from `FFTPRECACHE` phase
+
+outputs:
+* `xcorr.bruteforce` - same format as `xcorr.candidates`, one tab-separated line per matching event pair above `final.threshold` and their FFT xcorr value
+
 Data format
 -----------
-Expected data file format - one file per event, containing one line per data point, a single ascii-encoded floating point value 
+Expected data file format: one file per event, containing one line per data point, a single ascii-encoded floating point value
 
 eg:
 
@@ -127,7 +147,7 @@ eg:
 	-12.723866
 	-14.161493
 	...
-	
+
 Operation
 ---------
 * create two directories, for full and sample datasets
@@ -141,11 +161,11 @@ Operation
 		ls /path/to/full | shuf | head -1000 | xargs -I xx cp /path/to/full/xx /path/to/sample
 
 * edit xcorr.conf, add locations of dataset directories
-* initial parameter refinement - set mode=ANALYSE, compile, run (see below), observe output
+* initial parameter refinement - set mode=`ANALYSE`, compile, run (see below), observe output
 * change parameters in config file until performance / accuracy tradeoff is acceptable:
-* set mode=PEAKMATCH, run
-* set mode=FFTPRECACHE, run
-* set mode=POSTPROCESS, run
+* set mode=`PEAKMATCH`, run
+* set mode=`FFTPRECACHE`, run
+* set mode=`POSTPROCESS`, run
 
 Prerequisites
 -------------
@@ -161,11 +181,13 @@ Dependencies (via maven)
 * net.sf.json-lib
 * chronicle (see https://github.com/peter-lawrey/Java-Chronicle) - not in any central mvn repo, install locally (see below)
 
-Compilation and library installation
----------------------
+Library installation
+--------------------
+(only need to do this once)
 	mvn install:install-file -Dfile=lib/chronicle-1.2-SNAPSHOT.jar -DgroupId=vanilla.java -DartifactId=chronicle -Dversion=1.2-SNAPSHOT -Dpackaging=jar
-	(only need to do this once)
-	
+
+Compilation & assembly
+----------------------
 	mvn compile
     mvn assembly:single
 

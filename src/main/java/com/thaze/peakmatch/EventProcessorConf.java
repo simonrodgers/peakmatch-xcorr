@@ -178,7 +178,18 @@ public class EventProcessorConf {
 
 		@Override
 		public String toString() {
-			return "\tdataset: \t\t" + dataset + "\n" + "\tsampledataset: \t\t" + sampledataset + "\n" + "\tTopKPeaksToMatch: \t" + TopKPeaksToMatch + "\n" + "\tsamplingStride: \t" + samplingStride + "\n" + "\ttopAmplitudeThreshold: \t" + topAmplitudeThreshold + "\n" + "\tcandidateThreshold: \t" + candidateThreshold + "\n" + "\tfinalThreshold: \t" + finalThreshold + "\n" + "\texpectedFileLineCount: \t" + expectedFileLineCount + "\n" + "\tmode: \t\t\t" + mode + "\n" + "\tverbose: \t\t" + verbose + "\n" + "\tthreads: \t\t" + threads + "\n";
+			return "\tdataset: \t\t" + dataset + "\n"
+					+ "\tsampledataset: \t\t" + sampledataset + "\n"
+					+ "\tTopKPeaksToMatch: \t" + TopKPeaksToMatch + "\n"
+					+ "\tsamplingStride: \t" + samplingStride + "\n"
+					+ "\ttopAmplitudeThreshold: \t" + topAmplitudeThreshold + "\n"
+					+ "\tcandidateThreshold: \t" + candidateThreshold + "\n"
+					+ "\tfinalThreshold: \t" + finalThreshold + "\n"
+					+ "\texpectedFileLineCount: \t" + expectedFileLineCount + "\n"
+					+ "\tmode: \t\t\t" + mode + "\n"
+					+ "\tverbose: \t\t" + verbose + "\n"
+					+ "\tthreads: \t\t" + threads + "\n"
+					+ "\tfftMemoryCacheSize: \t" + fftMemoryCacheSize + "\n";
 		}
 
 		public double getFinalThreshold() {
