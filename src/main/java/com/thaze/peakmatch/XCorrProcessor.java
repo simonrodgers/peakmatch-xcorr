@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -104,12 +103,14 @@ public class XCorrProcessor {
 		try (final BufferedWriter bw = new BufferedWriter(new FileWriter(XCORR_BRUTEFORCE_FILE)) ){
 		
 			for (int ii = 0; ii < events.size(); ii++) {
-				final FFTPreprocessedEvent fe1 = fftPreprocessedEventFactory.make(events.get(ii));
+				final Event e1 = events.get(ii);
 				final int start = ii+1;
 				
-				pool.submit(new Callable<Void>() {
+				pool.execute(new Runnable() {
 					@Override
-					public Void call() throws IOException {
+					public void run() {
+						
+						FFTPreprocessedEvent fe1 = fftPreprocessedEventFactory.make(e1);
 						for (int jj = start; jj < events.size(); jj++) {
 							
 							FFTPreprocessedEvent fe2 = fftPreprocessedEventFactory.make(events.get(jj));
@@ -120,7 +121,12 @@ public class XCorrProcessor {
 							
 							if (best > _conf.getFinalThreshold()){
 								synchronized(bw){
-									bw.write(fe1.getName() + "\t" + fe2.getName() + "\t" + best + "\n");
+									try {
+										bw.write(fe1.getName() + "\t" + fe2.getName() + "\t" + best + "\n");
+									} catch (IOException e) {
+										System.err.println("error writing file " + XCORR_BRUTEFORCE_FILE);
+										throw new RuntimeException(e);
+									}
 								}
 							}
 							
@@ -131,20 +137,20 @@ public class XCorrProcessor {
 							if (c % 10000 == 0 && fftPreprocessedEventFactory.isUseCache())
 								System.out.println(fftPreprocessedEventFactory.stats());
 						}
-						return null;
 					}
 				});
 			}
+			
+			try {
+				pool.shutdown();
+				pool.awaitTermination(99999, TimeUnit.DAYS);
+			} catch (InterruptedException e1) {
+				e1.printStackTrace();
+			}
+			
 		} catch (IOException e) {
 			System.err.println("error writing file " + XCORR_BRUTEFORCE_FILE);
 			throw new EventException(e);
-		}
-		
-		try {
-			pool.shutdown();
-			pool.awaitTermination(99999, TimeUnit.DAYS);
-		} catch (InterruptedException e1) {
-			e1.printStackTrace();
 		}
 	}
 
@@ -217,14 +223,13 @@ public class XCorrProcessor {
 		
 		try (final BufferedWriter bw = new BufferedWriter(new FileWriter(XCORR_POSTPROCESS_FILE)) ){
 			
-			for (Entry<Event, Collection<Event>> e: candidates.asMap().entrySet()){
-				final FFTPreprocessedEvent fe1 = fftPreprocessedEventFactory.make(e.getKey());
-				final Collection<Event> es = e.getValue();
+			for (final Entry<Event, Collection<Event>> e: candidates.asMap().entrySet()){
 				
-				pool.submit(new Callable<Void>() {
+				pool.submit(new Runnable() {
 					@Override
-					public Void call() throws IOException {
-						for (Event e2: es){
+					public void run() {
+						final FFTPreprocessedEvent fe1 = fftPreprocessedEventFactory.make(e.getKey());
+						for (Event e2: e.getValue()){
 							FFTPreprocessedEvent fe2 = fftPreprocessedEventFactory.make(e2);
 							
 							double[] xcorr = Util.fftXCorr(fe1, fe2);
@@ -233,7 +238,12 @@ public class XCorrProcessor {
 							
 							if (best > _conf.getFinalThreshold()){
 								synchronized(bw){
-									bw.write(fe1.getName() + "\t" + fe2.getName() + "\t" + best + "\n");
+									try {
+										bw.write(fe1.getName() + "\t" + fe2.getName() + "\t" + best + "\n");
+									} catch (IOException ex) {
+										System.err.println("error writing file " + XCORR_POSTPROCESS_FILE);
+										throw new RuntimeException(ex);
+									}
 								}
 							}
 							
@@ -244,7 +254,6 @@ public class XCorrProcessor {
 							if (c % 10000 == 0)
 								System.out.println(fftPreprocessedEventFactory.stats());
 						}
-						return null;
 					}
 				});
 			}
@@ -276,11 +285,11 @@ public class XCorrProcessor {
 				AtomicInteger outerEventsComplete = new AtomicInteger();
 				
 				@Override
-				public synchronized void collect(String key, double score) throws EventException{
+				public synchronized void collect(String key, double score) {
 					try {
 						bw.write(key + "\t" + score + "\n");
 					} catch (IOException e){
-						throw new EventException(e);
+						throw new RuntimeException(e);
 					}
 					count.incrementAndGet();
 				}

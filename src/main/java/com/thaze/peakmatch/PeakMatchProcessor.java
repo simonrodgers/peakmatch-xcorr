@@ -31,9 +31,9 @@ public class PeakMatchProcessor {
 			final Event a = events.get(ii);
 			final int start = ii+1;
 			
-			pool.submit(new Callable<Void>() {
+			pool.submit(new Runnable() {
 				@Override
-				public Void call() throws EventException {
+				public void run() {
 
 					for (int jj = start; jj < events.size(); jj++) {
 						final Event b = events.get(jj);
@@ -50,8 +50,6 @@ public class PeakMatchProcessor {
 					}
 					
 					successCollector.notifyOuterComplete(events.size()-start);
-					
-					return null;
 				}
 			});
 		}
