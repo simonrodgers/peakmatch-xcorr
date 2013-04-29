@@ -165,6 +165,14 @@ eg:
 	-14.161493
 	...
 
+General Parameters
+------------------
+* `crop` true/false - perform peak cropping on events (all modes) before calculations performed
+* `crop.min-peak-range`
+* `crop.max-peak-range` - scan samples within range `crop.min-peak-range` to `crop.max-peak-range`, find peak sample
+* `crop.window-before-peak`
+* `crop.window-after-peak` - crop from `crop.window-before-peak` before to `crop.window-after-peak` after the peak.
+
 Operation
 ---------
 * create two directories, for full and sample datasets

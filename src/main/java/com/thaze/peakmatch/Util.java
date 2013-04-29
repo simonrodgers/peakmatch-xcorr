@@ -3,6 +3,7 @@ package com.thaze.peakmatch;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 
+import com.thaze.peakmatch.event.EventException;
 import org.apache.commons.math.complex.Complex;
 import org.apache.commons.math.transform.FastFourierTransformer;
 import org.joda.time.Period;
@@ -31,32 +32,39 @@ public final class Util {
 		return (int) Math.pow(2, Math.ceil(Math.log(x) / Math.log(2)));
 	}
 
-	public static double[] crop(double[] a, EventProcessorConf conf) {
+	public static double[] crop(double[] a, EventProcessorConf conf) throws EventException {
 
 		if (!conf.isCrop())
 			return a;
 
-		// find peak inside 35 -> 55 sec
-		// 100 points = 1 second
-		double peak = -1;
-		int peakIndex = 0;
-//		for (int ii = 35 * 100; ii < 55 * 100; ii++) {
-		for (int ii = conf.getCropMinPeakRange(); ii < conf.getCropMaxPeakRange(); ii++) {
-			if (Math.abs(a[ii]) > peak) {
-				peak = a[ii];
-				peakIndex = ii;
+
+		try{
+
+
+			// find peak inside 35 -> 55 sec
+			// 100 points = 1 second
+			double peak = -1;
+			int peakIndex = 0;
+	//		for (int ii = 35 * 100; ii < 55 * 100; ii++) {
+			for (int ii = conf.getCropMinPeakRange(); ii < conf.getCropMaxPeakRange(); ii++) {
+				if (Math.abs(a[ii]) > peak) {
+					peak = a[ii];
+					peakIndex = ii;
+				}
 			}
-		}
 
-		// return from -7 to +10 sec of peak
-//		double[] r = new double[100 * 17];
-		double[] r = new double[conf.getCropWindowBeforePeak() + conf.getCropWindowAfterPeak()];
-		for (int ii = 0; ii < r.length; ii++) {
-//			r[ii] = a[ii + peakIndex - 7 * 100];
-			r[ii] = a[ii + peakIndex - conf.getCropWindowBeforePeak()];
-		}
+			// return from -7 to +10 sec of peak
+	//		double[] r = new double[100 * 17];
+			double[] r = new double[conf.getCropWindowBeforePeak() + conf.getCropWindowAfterPeak()];
+			for (int ii = 0; ii < r.length; ii++) {
+	//			r[ii] = a[ii + peakIndex - 7 * 100];
+				r[ii] = a[ii + peakIndex - conf.getCropWindowBeforePeak()];
+			}
 
-		return r;
+			return r;
+		} catch (ArrayIndexOutOfBoundsException e){
+			throw new EventException("array out of bounds (" + e.getMessage() + ") while cropping - check crop parameters vs. file line count");
+		}
 	}
 	
 	// FastFourierTransformer contains some synchronized stuff which breaks multithreading if there's only one static FFT object
