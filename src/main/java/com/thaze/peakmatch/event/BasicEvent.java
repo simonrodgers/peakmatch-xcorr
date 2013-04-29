@@ -34,12 +34,16 @@ public class BasicEvent implements Event {
 			int ii = 0;
 			while (null != (line = br.readLine())) {
 				d[ii++] = (int) Double.parseDouble(line);
-				if (ii > conf.getExpectedFileLineCount())
-					throw new EventException("file " + file + " not expected size (line " + ii + " > " + conf.getExpectedFileLineCount() + ")");
+				if (ii > conf.getExpectedFileLineCount()){
+					System.out.println("file " + file + " not expected size (line " + ii + " > " + conf.getExpectedFileLineCount() + "), truncating");
+					break;
+//					throw new EventException("file " + file + " not expected size (line " + ii + " > " + conf.getExpectedFileLineCount() + ")");
+				}
 			}
 
-			if (ii != conf.getExpectedFileLineCount())
-				throw new EventException("file " + file + " not expected size (" + ii + " lines != " + conf.getExpectedFileLineCount() + ")");
+			if (ii < conf.getExpectedFileLineCount())
+				System.out.println("file " + file + " not expected size (line " + ii + " < " + conf.getExpectedFileLineCount() + "), padding to zeros");
+//				throw new EventException("file " + file + " not expected size (" + ii + " lines != " + conf.getExpectedFileLineCount() + ")");
 
 			_d = Util.crop(d, conf);
 		} catch (IOException e) {
