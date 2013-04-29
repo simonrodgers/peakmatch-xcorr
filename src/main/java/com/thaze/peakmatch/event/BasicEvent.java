@@ -33,7 +33,6 @@ public class BasicEvent implements Event {
 			double[] d = new double[conf.getExpectedFileLineCount()];
 			int ii = 0;
 			while (null != (line = br.readLine())) {
-				ii++;
 
 				if (ii == conf.getExpectedFileLineCount()){
 					System.out.println("file " + file + " too large, truncating");
@@ -41,7 +40,7 @@ public class BasicEvent implements Event {
 //					throw new EventException("file " + file + " not expected size (line " + ii + " > " + conf.getExpectedFileLineCount() + ")");
 				}
 
-				d[ii] = (int) Double.parseDouble(line);
+				d[ii++] = (int) Double.parseDouble(line);
 			}
 
 			if (ii < conf.getExpectedFileLineCount())
