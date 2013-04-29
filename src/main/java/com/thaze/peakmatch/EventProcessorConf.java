@@ -23,8 +23,8 @@ public class EventProcessorConf {
 		b.setDataset(dataset);
 
 		File sampledataset = new File(props.getProperty("dataset.sample"));
-		if (!sampledataset.exists() || !sampledataset.isDirectory() || sampledataset.listFiles().length == 0)
-			throw new EventException("non-existent or empty sample dataset directory " + sampledataset);
+//		if (!sampledataset.exists() || !sampledataset.isDirectory() || sampledataset.listFiles().length == 0)
+//			throw new EventException("non-existent or empty sample dataset directory " + sampledataset);
 		b.setSampledataset(sampledataset);
 
 		b.setTopKPeaksToMatch(getInt(props, "top-k-peaks"));
