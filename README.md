@@ -32,26 +32,26 @@ The process has four phases:
 * analyses the performance (extrapolates estimate to full data set)
 
 Parameters are set in the config file `xcorr.conf`:
-* top-k-peaks
+* `top-k-peaks`
 	* top K peaks (both min and max), ordered by amplitude, which will be aligned together. 
 	* run-time varies as O(K^2) - every event's top K peaks are aligned against every other event's top K peaks
 	
-* sampling-stride
+* `sampling-stride`
 	* sample events every sampling-stride entries
 	* run-time varies as O(1 / sampling-stride)
 	
-* top-amplitude-threshold
+* `top-amplitude-threshold`
 	* only calculate xcorr values for values where the amplitude is higher than this fraction of the peak amplitude.
 	* the final xcorr value for a well-matching pair is dominated by the multiplication of two peaks together (eg 1000 * 1000 >> 50 * 50).
 	* setting this to a non-zero value means eliminating a large amount of noise from the calculations, and drastically speeding up the calculation. 
 	* tweak this value in ANALYSE phase: too high -> false negatives. too low -> performance degredation
 	
-* candidate-threshold
+* `candidate-threshold`
 	* threshold for candidates to be included
 	* this will be lower than the final xcorr calculated value
 	* tweak this value in ANALYSE phase: too high -> false negatives. too low -> too many false positives for post-processing
 
-* final-threshold
+* `final-threshold`
 	* threshold for the final FFT xcorr post-process step
 
 inputs:
@@ -134,6 +134,23 @@ inputs:
 outputs:
 * `xcorr.bruteforce` - same format as `xcorr.candidates`, one tab-separated line per matching event pair above `final.threshold` and their FFT xcorr value
 
+FFT Dominant Frequency analysis
+-------------------------------
+Performs FFT on all events in the `dataset.full` directory, and emits the dominant frequencies for each event
+
+Parameters are set in the config file `xcorr.conf`:
+
+* `dominantfreq.band-width` - don't emit more than one frequency within this distance from each other
+* `dominantfreq.filter-below-hz` - filter out all frequencies below this parameter
+* `dominantfreq.sample-rate` - sample rate (hz) of the event (eg 50)
+* `dominantfreq.top-freq-count` - how many frequencies to emit per event file (eg 5)
+
+inputs:
+* full data set - all files in the `dataset.full` directory
+
+outputs:
+* `xcorr.dominantfreq` - one line per file, tab-separated - filename followed by the top frequencies (in hz)
+
 Data format
 -----------
 Expected data file format: one file per event, containing one line per data point, a single ascii-encoded floating point value
@@ -183,7 +200,7 @@ Dependencies (via maven)
 
 Library installation
 --------------------
-(only need to do this once)
+(only need to do this once per machine peakmatch is used on)
 	mvn install:install-file -Dfile=lib/chronicle-1.2-SNAPSHOT.jar -DgroupId=vanilla.java -DartifactId=chronicle -Dversion=1.2-SNAPSHOT -Dpackaging=jar
 
 Compilation & assembly
