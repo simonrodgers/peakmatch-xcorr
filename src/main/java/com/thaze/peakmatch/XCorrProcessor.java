@@ -6,7 +6,9 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -33,6 +35,7 @@ import com.thaze.peakmatch.event.EventPairCollector;
 import com.thaze.peakmatch.event.FFTPreprocessedEvent;
 import com.thaze.peakmatch.event.FFTPreprocessedEventFactory;
 import com.thaze.peakmatch.event.MapCollector;
+import org.apache.commons.math.complex.Complex;
 
 /**
  * @author Simon Rodgers
@@ -44,7 +47,9 @@ public class XCorrProcessor {
 	public static final String XCORR_CANDIDATES_FILE = "xcorr.candidates";
 	public static final String XCORR_POSTPROCESS_FILE = "xcorr.postprocess";
 	public static final String XCORR_BRUTEFORCE_FILE = "xcorr.bruteforce";
-	
+	public static final String XCORR_DOMINANTFREQ_FILE = "xcorr.dominantfreq";
+
+
 	private final EventProcessorConf _conf;
 	private final PeakMatchProcessor pmProcessor;
 	private final FFTPreprocessedEventFactory fftPreprocessedEventFactory;
@@ -79,6 +84,8 @@ public class XCorrProcessor {
 				p.doPostProcess();
 			break; case BRUTEFORCE:
 				p.doBruteForce();
+			break; case FFTDOMINANTFREQ:
+				p.doFFTDominantFreq();
 			}
 		} catch (EventException e){
 			System.err.println("error: " + e.getMessage());
@@ -88,7 +95,95 @@ public class XCorrProcessor {
 		
 		System.out.println("*** done [" + (System.currentTimeMillis()-t0) + " ms] ***");
 	}
-	
+
+	class Freq implements Comparable<Freq> {
+
+		final double _abs;
+		final double _frequency;
+
+		Freq(int index, double abs, int sampleCount){
+			_abs=abs;
+			_frequency = (double)index * _conf.getDominantFreqSampleRate() / sampleCount;
+		}
+
+		@Override
+		public int compareTo(Freq o) {
+			return Double.compare(o._abs, _abs);
+		}
+	}
+
+
+	private void doFFTDominantFreq() throws EventException {
+		System.out.println("dominant frequency mode");
+
+		try (final BufferedWriter bw = new BufferedWriter(new FileWriter(XCORR_DOMINANTFREQ_FILE)) ){
+
+			// don't need to load all into memory
+			executePerEvent(new EventAction() {
+				@Override
+				public void run(Event e) throws EventException {
+
+					double[] d = e.getD();
+
+					// zero pad to next power of two
+					int len = Util.nextPowerOfTwo(d.length * 2);
+					d = Arrays.copyOf(d, len);
+
+					Complex[] cs = Util.FFTtransform(d);
+					cs = Arrays.copyOf(cs, cs.length / 2); // second half is an inverted artifact of the transform, throw it away
+
+					double[] ab = new double[d.length];
+					List<Freq> freqs = Lists.newArrayList();
+
+					double filterBelowIndex = d.length / _conf.getDominantFreqSampleRate() * _conf.getDominantFreqFilterBelowHz();
+
+					for (int ii = 0; ii < cs.length; ii++) {
+
+						if (ii < filterBelowIndex)
+							continue;
+
+						double abs = cs[ii].abs();
+						ab[ii] = cs[ii].abs();
+
+						freqs.add(new Freq(ii, abs, d.length));
+					}
+
+					Collections.sort(freqs);
+					List<Freq> topFreqs = Lists.newArrayList();
+					outer: for (Freq f: freqs){
+
+						for (Freq alreadyGot: topFreqs){
+							if (Math.abs(f._frequency - alreadyGot._frequency) < _conf.getDominantFreqBandWidth())
+								continue outer;
+						}
+
+						topFreqs.add(f);
+
+						if (topFreqs.size() == _conf.getDominantFreqTopFreqCount())
+							break;
+					}
+
+					try {
+						bw.write(e.getName());
+
+						for (Freq f: topFreqs)
+							bw.write("\t" + Util.NF.format(f._frequency));
+
+						bw.write("\n");
+
+					} catch (IOException e1) {
+						throw new EventException("failed to write: " + e1);
+					}
+				}
+			});
+
+
+		} catch (IOException e) {
+			System.err.println("error writing file " + XCORR_DOMINANTFREQ_FILE);
+			throw new EventException(e);
+		}
+	}
+
 	private void doBruteForce() throws EventException {
 		System.out.println("brute force mode");
 		
@@ -526,6 +621,28 @@ public class XCorrProcessor {
 		}
 		
 		return samples;
+	}
+
+	interface EventAction{ void run(Event e) throws EventException;}
+
+	private void executePerEvent(EventAction ea) {
+		File[] fs = _conf.getDataset().listFiles();
+
+		StateLogger sl = new StateLogger();
+		int count = 0;
+		for (File f : fs){
+			try{
+				Event e = new BasicEvent(f, _conf);
+
+				if (++count % 1000 == 0)
+					System.out.println(sl.state(count, fs.length));
+
+				ea.run(e);
+
+			} catch (EventException e1){
+				System.err.println("failed to load: " + e1.getMessage());
+			}
+		}
 	}
 	
 	private List<Event> loadAllEvents() throws EventException {

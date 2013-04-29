@@ -43,6 +43,17 @@ public class EventProcessorConf {
 		b.setThreads(getInt(props, "threads"));
 		b.setFFTMemoryCacheSize(getInt(props, "fft-memory-cache-size"));
 
+		b.setCrop(Boolean.parseBoolean(props.getProperty("crop")));
+		b.setCropMinPeakRange(getInt(props, "crop.min-peak-range"));
+		b.setCropMaxPeakRange(getInt(props, "crop.max-peak-range"));
+		b.setCropWindowBeforePeak(getInt(props, "crop.window-before-peak"));
+		b.setCropWindowAfterPeak(getInt(props, "crop.window-after-peak"));
+
+		b.setDominantFreqBandWidth(getDouble(props, "dominantfreq.band-width"));
+		b.setDominantFreqFilterBelowHz(getDouble(props, "dominantfreq.filter-below-hz"));
+		b.setDominantFreqSampleRate(getInt(props, "dominantfreq.sample-rate"));
+		b.setDominantFreqTopFreqCount(getInt(props, "dominantfreq.top-freq-count"));
+
 		return b;
 	}
 
@@ -77,7 +88,7 @@ public class EventProcessorConf {
 	}
 
 	public static enum Mode {
-		ANALYSE, PEAKMATCH, FFTPRECACHE, POSTPROCESS, BRUTEFORCE
+		ANALYSE, PEAKMATCH, FFTPRECACHE, POSTPROCESS, BRUTEFORCE, FFTDOMINANTFREQ
 	}
 
 	public static class Builder {
@@ -93,6 +104,17 @@ public class EventProcessorConf {
 		private boolean verbose;
 		private int threads;
 		private int fftMemoryCacheSize;
+
+		private boolean crop;
+		private int cropMinPeakRange;
+		private int cropMaxPeakRange;
+		private int cropWindowBeforePeak;
+		private int cropWindowAfterPeak;
+
+		private int dominantFreqSampleRate;
+		private double dominantFreqBandWidth;
+		private double dominantFreqFilterBelowHz;
+		private int dominantFreqTopFreqCount;
 
 		boolean _built;
 
@@ -189,7 +211,12 @@ public class EventProcessorConf {
 					+ "\tmode: \t\t\t" + mode + "\n"
 					+ "\tverbose: \t\t" + verbose + "\n"
 					+ "\tthreads: \t\t" + threads + "\n"
-					+ "\tfftMemoryCacheSize: \t" + fftMemoryCacheSize + "\n";
+					+ "\tfftMemoryCacheSize: \t" + fftMemoryCacheSize + "\n"
+					+ "\tdominantFreqBandWidth: \t" + dominantFreqBandWidth + "\n"
+					+ "\tdominantFreqFilterBelowHz: \t" + dominantFreqFilterBelowHz + "\n"
+					+ "\tdominantFreqSampleRate: \t" + dominantFreqSampleRate + "\n"
+					+ "\tdominantFreqTopFreqCount: \t" + dominantFreqTopFreqCount + "\n"
+					;
 		}
 
 		public double getFinalThreshold() {
@@ -241,6 +268,86 @@ public class EventProcessorConf {
 			this.fftMemoryCacheSize = fftMemoryCacheSize;
 			return this;
 		}
+
+		public int getDominantFreqSampleRate() {
+			return dominantFreqSampleRate;
+		}
+
+		public Builder setDominantFreqSampleRate(int dominantFreqSampleRate) {
+			assertState();
+			this.dominantFreqSampleRate = dominantFreqSampleRate;
+			return this;
+		}
+
+		public double getDominantFreqBandWidth() {
+			return dominantFreqBandWidth;
+		}
+
+		public Builder setDominantFreqBandWidth(double dominantFreqBandWidth) {
+			assertState();
+			this.dominantFreqBandWidth = dominantFreqBandWidth;
+			return this;
+		}
+
+		public double getDominantFreqFilterBelowHz() {
+			return dominantFreqFilterBelowHz;
+		}
+
+		public Builder setDominantFreqFilterBelowHz(double dominantFreqFilterBelowHz) {
+			assertState();
+			this.dominantFreqFilterBelowHz = dominantFreqFilterBelowHz;
+			return this;
+		}
+
+		public int getDominantFreqTopFreqCount() {
+			return dominantFreqTopFreqCount;
+		}
+
+		public Builder setDominantFreqTopFreqCount(int dominantFreqTopFreqCount) {
+			assertState();
+			this.dominantFreqTopFreqCount = dominantFreqTopFreqCount;
+			return this;
+		}
+
+		public int getCropMinPeakRange() {
+			return cropMinPeakRange;
+		}
+
+		public void setCropMinPeakRange(int cropMinPeakRange) {
+			this.cropMinPeakRange = cropMinPeakRange;
+		}
+
+		public int getCropMaxPeakRange() {
+			return cropMaxPeakRange;
+		}
+
+		public void setCropMaxPeakRange(int cropMaxPeakRange) {
+			this.cropMaxPeakRange = cropMaxPeakRange;
+		}
+
+		public int getCropWindowBeforePeak() {
+			return cropWindowBeforePeak;
+		}
+
+		public void setCropWindowBeforePeak(int cropWindowBeforePeak) {
+			this.cropWindowBeforePeak = cropWindowBeforePeak;
+		}
+
+		public int getCropWindowAfterPeak() {
+			return cropWindowAfterPeak;
+		}
+
+		public void setCropWindowAfterPeak(int cropWindowAfterPeak) {
+			this.cropWindowAfterPeak = cropWindowAfterPeak;
+		}
+
+		public boolean isCrop() {
+			return crop;
+		}
+
+		public void setCrop(boolean crop) {
+			this.crop = crop;
+		}
 	}
 
 	public File getDataset() {
@@ -291,9 +398,50 @@ public class EventProcessorConf {
 		return _builder.getFFTMemoryCacheSize();
 	}
 
+
+	public int getDominantFreqSampleRate() {
+		return _builder.dominantFreqSampleRate;
+	}
+
+	public double getDominantFreqBandWidth() {
+		return _builder.dominantFreqBandWidth;
+	}
+
+	public double getDominantFreqFilterBelowHz() {
+		return _builder.dominantFreqFilterBelowHz;
+	}
+
+	public int getDominantFreqTopFreqCount(){
+		return _builder.getDominantFreqTopFreqCount();
+	}
+
+	public boolean isCrop() {
+		return _builder.crop;
+	}
+
+	public int getCropMinPeakRange() {
+		return _builder.cropMinPeakRange;
+	}
+
+	public int getCropMaxPeakRange() {
+		return _builder.cropMaxPeakRange;
+	}
+
+
+	public int getCropWindowBeforePeak() {
+		return _builder.cropWindowBeforePeak;
+	}
+
+
+	public int getCropWindowAfterPeak() {
+		return _builder.cropWindowAfterPeak;
+	}
+
 	public int countAllEvents() {
 		return getDataset().listFiles().length;
 	}
+
+
 
 	@Override
 	public String toString() {

@@ -41,7 +41,7 @@ public class BasicEvent implements Event {
 			if (ii != conf.getExpectedFileLineCount())
 				throw new EventException("file " + file + " not expected size (" + ii + " lines != " + conf.getExpectedFileLineCount() + ")");
 
-			_d = Util.crop(d);
+			_d = Util.crop(d, conf);
 		} catch (IOException e) {
 			System.err.println("error reading file " + file + ", line '" + line + "'");
 			throw new EventException(e);

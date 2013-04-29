@@ -31,25 +31,29 @@ public final class Util {
 		return (int) Math.pow(2, Math.ceil(Math.log(x) / Math.log(2)));
 	}
 
-	public static double[] crop(double[] a) {
+	public static double[] crop(double[] a, EventProcessorConf conf) {
 
-		// TODO parameterise peak range
+		if (!conf.isCrop())
+			return a;
+
 		// find peak inside 35 -> 55 sec
 		// 100 points = 1 second
 		double peak = -1;
 		int peakIndex = 0;
-		for (int ii = 35 * 100; ii < 55 * 100; ii++) {
+//		for (int ii = 35 * 100; ii < 55 * 100; ii++) {
+		for (int ii = conf.getCropMinPeakRange(); ii < conf.getCropMaxPeakRange(); ii++) {
 			if (Math.abs(a[ii]) > peak) {
 				peak = a[ii];
 				peakIndex = ii;
 			}
 		}
 
-		// TODO parameterise window positions
 		// return from -7 to +10 sec of peak
-		double[] r = new double[100 * 17];
+//		double[] r = new double[100 * 17];
+		double[] r = new double[conf.getCropWindowBeforePeak() + conf.getCropWindowAfterPeak()];
 		for (int ii = 0; ii < r.length; ii++) {
-			r[ii] = a[ii + peakIndex - 7 * 100];
+//			r[ii] = a[ii + peakIndex - 7 * 100];
+			r[ii] = a[ii + peakIndex - conf.getCropWindowBeforePeak()];
 		}
 
 		return r;
