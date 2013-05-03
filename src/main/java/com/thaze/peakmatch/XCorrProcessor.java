@@ -55,9 +55,9 @@ public class XCorrProcessor {
 	private final FFTPreprocessedEventFactory fftPreprocessedEventFactory;
 	
 	public XCorrProcessor() throws EventException {
-		_conf = EventProcessorConf.buildFromConf(CONF_FILE).build();
+		_conf = new EventProcessorConf(CONF_FILE);
 		pmProcessor = new PeakMatchProcessor(_conf);
-		fftPreprocessedEventFactory = new FFTPreprocessedEventFactory(_conf.getThreads(), _conf.getFFTMemoryCacheSize());
+		fftPreprocessedEventFactory = new FFTPreprocessedEventFactory(_conf.getThreads(), _conf.getFftMemoryCacheSize());
 	}
 
 	public static void main(String[] args) {
@@ -136,11 +136,9 @@ public class XCorrProcessor {
 					List<Freq> freqs = Lists.newArrayList();
 
 					double filterBelowIndex = d.length / _conf.getDominantFreqSampleRate() * _conf.getDominantFreqFilterBelowHz();
+					double filterAboveIndex = d.length / _conf.getDominantFreqSampleRate() * _conf.getDominantFreqFilterAboveHz();
 
-					for (int ii = 0; ii < cs.length; ii++) {
-
-						if (ii < filterBelowIndex)
-							continue;
+					for (int ii = (int)filterBelowIndex; ii < Math.min(cs.length, (int)filterAboveIndex); ii++) {
 
 						double abs = cs[ii].abs();
 						ab[ii] = cs[ii].abs();

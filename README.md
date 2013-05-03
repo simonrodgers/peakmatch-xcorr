@@ -142,6 +142,7 @@ Parameters are set in the config file `xcorr.conf`:
 
 * `dominantfreq.band-width` - don't emit more than one frequency within this distance from each other
 * `dominantfreq.filter-below-hz` - filter out all frequencies below this parameter
+* `dominantfreq.filter-above-hz` - filter out all frequencies above this parameter
 * `dominantfreq.sample-rate` - sample rate (hz) of the event (eg 50)
 * `dominantfreq.top-freq-count` - how many frequencies to emit per event file (eg 5)
 
