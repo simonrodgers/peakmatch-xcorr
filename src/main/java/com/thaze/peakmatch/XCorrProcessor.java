@@ -35,6 +35,12 @@ import com.thaze.peakmatch.event.EventPairCollector;
 import com.thaze.peakmatch.event.FFTPreprocessedEvent;
 import com.thaze.peakmatch.event.FFTPreprocessedEventFactory;
 import com.thaze.peakmatch.event.MapCollector;
+import org.apache.commons.cli.BasicParser;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.OptionBuilder;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.apache.commons.math.complex.Complex;
 
 /**
@@ -49,29 +55,59 @@ public class XCorrProcessor {
 	public static final String XCORR_BRUTEFORCE_FILE = "xcorr.bruteforce";
 	public static final String XCORR_DOMINANTFREQ_FILE = "xcorr.dominantfreq";
 
-
 	private final EventProcessorConf _conf;
 	private final PeakMatchProcessor pmProcessor;
-	private final FFTPreprocessedEventFactory fftPreprocessedEventFactory;
-	
+
 	public XCorrProcessor() throws EventException {
 		_conf = new EventProcessorConf(CONF_FILE);
 		pmProcessor = new PeakMatchProcessor(_conf);
-		fftPreprocessedEventFactory = new FFTPreprocessedEventFactory(_conf.getThreads(), _conf.getFftMemoryCacheSize());
 	}
 
 	public static void main(String[] args) {
-		
+
 		long t0 = System.currentTimeMillis();
-		System.out.println();
-		System.out.println("*** Peak-matched sampled efficient cross-correlation ***");
-		
+
 		try{
 			XCorrProcessor p = new XCorrProcessor();
-			
+
+			Options options = new Options();
+			options.addOption(OptionBuilder
+					.withArgName("events")
+					.hasArgs(2)
+					.withDescription("filenames for events")
+					.create('e'));
+
+			CommandLineParser parser = new BasicParser();
+			try{
+				CommandLine cmd = parser.parse( options, args);
+
+				if (cmd.hasOption('e')){
+
+					String[] events = cmd.getOptionValues('e');
+					if (events.length != 2){
+						System.err.println("expected two event files to cross-correlate");
+						return;
+					}
+
+					Event e1 = new BasicEvent(new File(events[0]), p._conf);
+					Event e2 = new BasicEvent(new File(events[1]), p._conf);
+
+					double[] xcorr = Util.fftXCorr(e1, e2);
+					double best = Util.getHighest(xcorr);
+
+					System.out.println(Util.NF.format(best));
+					return;
+				}
+			} catch (ParseException e) {
+				e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+			}
+
+			System.out.println();
+			System.out.println("*** Peakmatch ***");
 			System.out.println("read " + CONF_FILE + " ...");
 			System.out.println(p._conf);
-			
+
+
 			switch (p._conf.getMode()){
 			case ANALYSE:
 				p.analyseAccuracy();
@@ -87,12 +123,12 @@ public class XCorrProcessor {
 			break; case FFTDOMINANTFREQ:
 				p.doFFTDominantFreq();
 			}
-		} catch (EventException e){
+		} catch (Throwable e){
 			System.err.println("error: " + e.getMessage());
 			if (null != e.getCause())
 				e.printStackTrace();
 		}
-		
+
 		System.out.println("*** done [" + (System.currentTimeMillis()-t0) + " ms] ***");
 	}
 
@@ -184,11 +220,13 @@ public class XCorrProcessor {
 
 	private void doBruteForce() throws EventException {
 		System.out.println("brute force mode");
+
+		final FFTPreprocessedEventFactory fftPreprocessedEventFactory = new FFTPreprocessedEventFactory(_conf.getThreads(), _conf.getFftMemoryCacheSize());
 		
 		final List<Event> events = loadAllEvents();
 		
 		ExecutorService pool = Executors.newFixedThreadPool(_conf.getThreads());
-		
+
 		final StateLogger sl = new StateLogger();
 		final AtomicInteger count = new AtomicInteger();
 		final long totalSize = events.size() * events.size() / 2;
@@ -202,16 +240,16 @@ public class XCorrProcessor {
 				pool.execute(new Runnable() {
 					@Override
 					public void run() {
-						
+
 						FFTPreprocessedEvent fe1 = fftPreprocessedEventFactory.make(e1);
 						for (int jj = start; jj < events.size(); jj++) {
-							
+
 							FFTPreprocessedEvent fe2 = fftPreprocessedEventFactory.make(events.get(jj));
-							
+
 							double[] xcorr = Util.fftXCorr(fe1, fe2);
-							
+
 							double best = Util.getHighest(xcorr);
-							
+
 							if (best > _conf.getFinalThreshold()){
 								synchronized(bw){
 									try {
@@ -222,11 +260,11 @@ public class XCorrProcessor {
 									}
 								}
 							}
-							
+
 							int c = count.incrementAndGet();
 							if (c % 1000 == 0)
 								System.out.println(sl.state(c, totalSize));
-							
+
 							if (c % 10000 == 0 && fftPreprocessedEventFactory.isUseCache())
 								System.out.println(fftPreprocessedEventFactory.stats());
 						}
@@ -238,7 +276,7 @@ public class XCorrProcessor {
 				pool.shutdown();
 				pool.awaitTermination(99999, TimeUnit.DAYS);
 			} catch (InterruptedException e1) {
-				e1.printStackTrace();
+				throw new EventException("interrupted", e1);
 			}
 			
 		} catch (IOException e) {
@@ -280,7 +318,9 @@ public class XCorrProcessor {
 				return e.getName();
 			}
 		});
-		
+
+		final FFTPreprocessedEventFactory fftPreprocessedEventFactory = new FFTPreprocessedEventFactory(_conf.getThreads(), _conf.getFftMemoryCacheSize());
+
 		// load all candidates, arrange as map of {Event : [candidate Event]} for iteration
 		final Multimap<Event, Event> candidates = HashMultimap.create();
 		try (BufferedReader br = new BufferedReader(new FileReader(XCORR_CANDIDATES_FILE)) ){
