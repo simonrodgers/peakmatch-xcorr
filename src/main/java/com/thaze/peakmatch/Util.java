@@ -37,9 +37,7 @@ public final class Util {
 		if (!conf.isCrop())
 			return a;
 
-
 		try{
-
 
 			// find peak inside 35 -> 55 sec
 			// 100 points = 1 second
@@ -55,6 +53,10 @@ public final class Util {
 
 			// return from -7 to +10 sec of peak
 	//		double[] r = new double[100 * 17];
+
+			if (conf.isVerbose())
+				System.out.println("cropping from " + (peakIndex - conf.getCropWindowBeforePeak()) + " to " + (peakIndex + conf.getCropWindowAfterPeak()));
+
 			double[] r = new double[conf.getCropWindowBeforePeak() + conf.getCropWindowAfterPeak()];
 			for (int ii = 0; ii < r.length; ii++) {
 	//			r[ii] = a[ii + peakIndex - 7 * 100];

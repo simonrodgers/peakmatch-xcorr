@@ -35,6 +35,8 @@ public class EventProcessorConf {
 	private final double dominantFreqFilterAboveHz;
 	private final int dominantFreqTopFreqCount;
 
+	private final boolean normaliseEvents;
+
 	public EventProcessorConf(String confFile) throws EventException {
 
 		Properties props = getProps(confFile);
@@ -49,31 +51,33 @@ public class EventProcessorConf {
 
 		topKPeaksToMatch = getInt(props, "top-k-peaks");
 		samplingStride = getInt(props, "sampling-stride");
-		topAmplitudeThreshold = (getDouble(props, "top-amplitude-threshold"));
-		candidateThreshold = (getDouble(props, "candidate-threshold"));
-		finalThreshold = (getDouble(props, "final-threshold"));
-		expectedFileLineCount = (getInt(props, "expected-file-line-count"));
+		topAmplitudeThreshold = getDouble(props, "top-amplitude-threshold");
+		candidateThreshold = getDouble(props, "candidate-threshold");
+		finalThreshold = getDouble(props, "final-threshold");
+		expectedFileLineCount = getInt(props, "expected-file-line-count");
 
 		try {
-			mode = (Mode.valueOf(props.getProperty("mode")));
+			mode = Mode.valueOf(props.getProperty("mode"));
 		} catch (IllegalArgumentException e) {
 			throw new EventException("invalid mode value '" + props.getProperty("mode") + "'");
 		}
-		verbose = (Boolean.parseBoolean(props.getProperty("verbose")));
-		threads =  (getInt(props, "threads"));
-		fftMemoryCacheSize = (getInt(props, "fft-memory-cache-size"));
+		verbose = Boolean.parseBoolean(props.getProperty("verbose"));
+		threads = getInt(props, "threads");
+		fftMemoryCacheSize = getInt(props, "fft-memory-cache-size");
 
-		crop = (Boolean.parseBoolean(props.getProperty("crop")));
-		cropMinPeakRange = (getInt(props, "crop.min-peak-range"));
-		cropMaxPeakRange = (getInt(props, "crop.max-peak-range"));
-		cropWindowBeforePeak = (getInt(props, "crop.window-before-peak"));
-		cropWindowAfterPeak = (getInt(props, "crop.window-after-peak"));
+		crop = Boolean.parseBoolean(props.getProperty("crop"));
+		cropMinPeakRange = getInt(props, "crop.min-peak-range");
+		cropMaxPeakRange = getInt(props, "crop.max-peak-range");
+		cropWindowBeforePeak = getInt(props, "crop.window-before-peak");
+		cropWindowAfterPeak = getInt(props, "crop.window-after-peak");
 
-		dominantFreqBandWidth = (getDouble(props, "dominantfreq.band-width"));
-		dominantFreqFilterBelowHz = (getDouble(props, "dominantfreq.filter-below-hz"));
-		dominantFreqFilterAboveHz = (getDouble(props, "dominantfreq.filter-above-hz"));
-		dominantFreqSampleRate = (getInt(props, "dominantfreq.sample-rate"));
-		dominantFreqTopFreqCount = (getInt(props, "dominantfreq.top-freq-count"));
+		dominantFreqBandWidth = getDouble(props, "dominantfreq.band-width");
+		dominantFreqFilterBelowHz = getDouble(props, "dominantfreq.filter-below-hz");
+		dominantFreqFilterAboveHz = getDouble(props, "dominantfreq.filter-above-hz");
+		dominantFreqSampleRate = getInt(props, "dominantfreq.sample-rate");
+		dominantFreqTopFreqCount = getInt(props, "dominantfreq.top-freq-count");
+
+		normaliseEvents = Boolean.parseBoolean(props.getProperty("normalise-events"));
 	}
 
 	static double getDouble(Properties props, String key) throws EventException {
@@ -96,6 +100,10 @@ public class EventProcessorConf {
 		} catch (NumberFormatException e) {
 			throw new EventException("invalid int value for key " + key + ": " + s);
 		}
+	}
+
+	public boolean isNormaliseEvents() {
+		return normaliseEvents;
 	}
 
 	public static enum Mode {

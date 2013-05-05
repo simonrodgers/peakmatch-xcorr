@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -35,7 +36,9 @@ public class BasicEvent implements Event {
 			while (null != (line = br.readLine())) {
 
 				if (ii == conf.getExpectedFileLineCount()){
-					System.out.println("file " + file + " too large, truncating");
+					if (conf.isVerbose())
+						System.out.println("file " + file + " too large, truncating");
+
 					break;
 //					throw new EventException("file " + file + " not expected size (line " + ii + " > " + conf.getExpectedFileLineCount() + ")");
 				}
@@ -43,15 +46,30 @@ public class BasicEvent implements Event {
 				d[ii++] = (int) Double.parseDouble(line);
 			}
 
-//			if (ii < conf.getExpectedFileLineCount()){
-//				System.out.println("file " + file + " not expected size (" + ii + " < " + conf.getExpectedFileLineCount() + "), padding to zeros");
+			if (conf.isVerbose() && ii < conf.getExpectedFileLineCount()){
+				System.out.println("file " + file + " not expected size (" + ii + " < " + conf.getExpectedFileLineCount() + "), padding to zeros");
 //				throw new EventException("file " + file + " not expected size (" + ii + " lines != " + conf.getExpectedFileLineCount() + ")");
-//			}
+			}
 
 			_d = Util.crop(d, conf);
 		} catch (IOException e) {
 			System.err.println("error reading file " + file + ", line '" + line + "'");
 			throw new EventException(e);
+		}
+
+		if (conf.isNormaliseEvents()){
+
+			double total=0;
+			for (double d: _d)
+				total += d;
+
+			double offset = total / _d.length;
+
+			for (int ii=0; ii<_d.length; ii++)
+				_d[ii] -= offset;
+
+			if (conf.isVerbose())
+				System.out.println("normalised " + file + " by " + Util.NF.format(offset));
 		}
 
 		_filename = file.getName();
