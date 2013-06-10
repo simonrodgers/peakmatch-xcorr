@@ -1,20 +1,18 @@
 package com.thaze.peakmatch.event;
 
+import com.thaze.peakmatch.EventProcessorConf;
+import com.thaze.peakmatch.Tuple;
+import com.thaze.peakmatch.Util;
+import org.apache.commons.lang.ArrayUtils;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-
-import org.apache.commons.lang.ArrayUtils;
-
-import com.thaze.peakmatch.EventProcessorConf;
-import com.thaze.peakmatch.Tuple;
-import com.thaze.peakmatch.Util;
 
 public class BasicEvent implements Event {
 	private final double[] _d;
@@ -24,6 +22,8 @@ public class BasicEvent implements Event {
 	private final int[] minSpatialPeaks;
 
 	private final int[] indexesAboveThreshold;
+
+	private final double _peakAmp;
 
 	public BasicEvent(File file, EventProcessorConf conf) throws EventException {
 
@@ -86,18 +86,19 @@ public class BasicEvent implements Event {
 		// calculate peaks - defined as largest amplitude point between two origin-crossing
 		List<Tuple<Integer, Double>> aPeaks = new ArrayList<Tuple<Integer, Double>>();
 		int peakX = 0;
-		double peakAmp = 0;
+		double peakNormalisedAmp = 0;
 		for (int ii = 1; ii < length(); ii++) {
 			if (_d[ii] > 0 != _d[ii - 1] > 0) { // crossing origin
 				aPeaks.add(Tuple.tuple(peakX, _d[peakX]));
-				peakAmp = 0;
+				peakNormalisedAmp = 0;
 			}
 
-			if (Math.abs(_d[ii]) > peakAmp) {
-				peakAmp = Math.abs(_d[ii]);
+			if (Math.abs(_d[ii]) > peakNormalisedAmp) {
+				peakNormalisedAmp = Math.abs(_d[ii]);
 				peakX = ii;
 			}
 		}
+		_peakAmp=peakNormalisedAmp * rms;
 
 		if (aPeaks.size() < conf.getTopKPeaksToMatch())
 			throw new EventException(getName() + " doesn't have enough peaks");
@@ -182,5 +183,9 @@ public class BasicEvent implements Event {
 	@Override
 	public String toString() {
 		return getName();
+	}
+
+	public double getPeakAmp() {
+		return _peakAmp;
 	}
 }
