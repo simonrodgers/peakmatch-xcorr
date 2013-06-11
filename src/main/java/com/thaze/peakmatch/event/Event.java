@@ -7,4 +7,5 @@ public interface Event {
 	public int[] getMinSpatialPeaks();
 	public int[] getIndexesAboveThreshold();
 	public int length();
+	public double getPeakAmp();
 }
