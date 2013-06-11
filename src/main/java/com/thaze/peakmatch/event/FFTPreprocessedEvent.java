@@ -1,11 +1,10 @@
 package com.thaze.peakmatch.event;
 
-import java.util.Arrays;
-
+import com.thaze.peakmatch.Util;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.math.complex.Complex;
 
-import com.thaze.peakmatch.Util;
+import java.util.Arrays;
 
 public class FFTPreprocessedEvent implements Event {
 
@@ -19,7 +18,7 @@ public class FFTPreprocessedEvent implements Event {
 		this.forwards_fft=forwards_fft;
 		this.reverse_fft=reverse_fft;
 	}
-	
+
 	public FFTPreprocessedEvent (Event e){
 		delegate = e;
 
@@ -76,6 +75,11 @@ public class FFTPreprocessedEvent implements Event {
 
 	public int length() {
 		return delegate.length();
+	}
+
+	@Override
+	public double getPeakAmp() {
+		return delegate.getPeakAmp();
 	}
 
 	public String toString() {
