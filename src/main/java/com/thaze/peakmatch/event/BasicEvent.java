@@ -74,15 +74,17 @@ public class BasicEvent implements Event {
 
 		_filename = file.getName();
 		
-		double ms = 0;
+		double i2 = 0;
 		for (double i : _d)
-			ms += i * i;
-		ms /= _d.length;
-		double rms = Math.sqrt(ms);
+			i2 += i * i;
+
+		// not dividing by length (RMS)
+		// see http://paulbourke.net/miscellaneous/correlate/
+		double rootSumOfSquares = Math.sqrt(i2);
 
 		// normalise vector
 		for (int ii = 0; ii < _d.length; ii++)
-			_d[ii] /= rms;
+			_d[ii] /= rootSumOfSquares;
 
 		// calculate peaks - defined as largest amplitude point between two origin-crossing
 		List<Tuple<Integer, Double>> aPeaks = new ArrayList<Tuple<Integer, Double>>();
@@ -107,7 +109,7 @@ public class BasicEvent implements Event {
 			}
 		}
 
-		_peakAmp = peakNormalisedAmp * rms;
+		_peakAmp = peakNormalisedAmp * rootSumOfSquares;
 
 		if (aPeaks.size() < conf.getTopKPeaksToMatch())
 			throw new EventException(getName() + " doesn't have enough peaks");
