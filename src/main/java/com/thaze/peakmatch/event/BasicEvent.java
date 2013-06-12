@@ -77,6 +77,7 @@ public class BasicEvent implements Event {
 		double ms = 0;
 		for (double i : _d)
 			ms += i * i;
+		ms /= _d.length;
 		double rms = Math.sqrt(ms);
 
 		// normalise vector
@@ -86,19 +87,27 @@ public class BasicEvent implements Event {
 		// calculate peaks - defined as largest amplitude point between two origin-crossing
 		List<Tuple<Integer, Double>> aPeaks = new ArrayList<Tuple<Integer, Double>>();
 		int peakX = 0;
+		double peakLocalNormalisedAmp = 0;
 		double peakNormalisedAmp = 0;
 		for (int ii = 1; ii < length(); ii++) {
 			if (_d[ii] > 0 != _d[ii - 1] > 0) { // crossing origin
 				aPeaks.add(Tuple.tuple(peakX, _d[peakX]));
-				peakNormalisedAmp = 0;
+				peakLocalNormalisedAmp = 0;
 			}
 
-			if (Math.abs(_d[ii]) > peakNormalisedAmp) {
-				peakNormalisedAmp = Math.abs(_d[ii]);
+			double d = Math.abs(_d[ii]);
+
+			if (d > peakLocalNormalisedAmp) {
+				peakLocalNormalisedAmp = d; // reset each time crossing the origin
 				peakX = ii;
 			}
+
+			if (d > peakNormalisedAmp) {
+				peakNormalisedAmp = d;
+			}
 		}
-		_peakAmp=peakNormalisedAmp * rms;
+
+		_peakAmp = peakNormalisedAmp * rms;
 
 		if (aPeaks.size() < conf.getTopKPeaksToMatch())
 			throw new EventException(getName() + " doesn't have enough peaks");
