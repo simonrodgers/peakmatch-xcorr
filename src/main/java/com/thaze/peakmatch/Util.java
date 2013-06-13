@@ -1,9 +1,8 @@
 package com.thaze.peakmatch;
 
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
-
+import com.thaze.peakmatch.event.Event;
 import com.thaze.peakmatch.event.EventException;
+import com.thaze.peakmatch.event.FFTPreprocessedEvent;
 import org.apache.commons.math.complex.Complex;
 import org.apache.commons.math.transform.FastFourierTransformer;
 import org.joda.time.Period;
@@ -11,8 +10,8 @@ import org.joda.time.chrono.ISOChronology;
 import org.joda.time.format.PeriodFormatter;
 import org.joda.time.format.PeriodFormatterBuilder;
 
-import com.thaze.peakmatch.event.Event;
-import com.thaze.peakmatch.event.FFTPreprocessedEvent;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 
 public final class Util {
 	
@@ -46,7 +45,7 @@ public final class Util {
 	//		for (int ii = 35 * 100; ii < 55 * 100; ii++) {
 			for (int ii = conf.getCropMinPeakRange(); ii < conf.getCropMaxPeakRange(); ii++) {
 				if (Math.abs(a[ii]) > peak) {
-					peak = a[ii];
+					peak = Math.abs(a[ii]);
 					peakIndex = ii;
 				}
 			}
@@ -54,8 +53,10 @@ public final class Util {
 			// return from -7 to +10 sec of peak
 	//		double[] r = new double[100 * 17];
 
-			if (conf.isVerbose())
+			if (conf.isVerbose()){
+				System.out.println("found peak at position " + peakIndex + " (" + a[peakIndex] + ")");
 				System.out.println("cropping from " + (peakIndex - conf.getCropWindowBeforePeak()) + " to " + (peakIndex + conf.getCropWindowAfterPeak()));
+			}
 
 			double[] r = new double[conf.getCropWindowBeforePeak() + conf.getCropWindowAfterPeak()];
 			for (int ii = 0; ii < r.length; ii++) {
