@@ -168,7 +168,7 @@ public class XCorrProcessor {
 					Complex[] cs = Util.FFTtransform(d);
 					cs = Arrays.copyOf(cs, cs.length / 2); // second half is an inverted artifact of the transform, throw it away
 
-					double[] ab = new double[d.length];
+//					double[] ab = new double[d.length];
 					List<Freq> freqs = Lists.newArrayList();
 
 					double filterBelowIndex = d.length / _conf.getDominantFreqSampleRate() * _conf.getDominantFreqFilterBelowHz();
@@ -177,8 +177,7 @@ public class XCorrProcessor {
 					for (int ii = (int)filterBelowIndex; ii < Math.min(cs.length, (int)filterAboveIndex); ii++) {
 
 						double abs = cs[ii].abs();
-						ab[ii] = cs[ii].abs();
-
+//						ab[ii] = cs[ii].abs();
 						freqs.add(new Freq(ii, abs, d.length));
 					}
 
@@ -197,6 +196,34 @@ public class XCorrProcessor {
 							break;
 					}
 
+					List<Double> bandMeanAmps = Lists.newArrayList();
+
+					if (null != _conf.getMeanFrequencyAmplitudeBands()){
+						String[] bands = _conf.getMeanFrequencyAmplitudeBands().replaceAll("[\\[\\]()]", "").split(" ");
+						for (String band: bands){
+							String[] boundaries = band.split("-");
+							if (boundaries.length != 2)
+								throw new EventException("invalid dominantfreq.mean-frequency-amplitude-bands '" + _conf.getMeanFrequencyAmplitudeBands() + "' - expecting hz ranges eg [1.5-5] [5-7.8]");
+
+							try {
+								double startIndex = d.length / _conf.getDominantFreqSampleRate() * Double.parseDouble(boundaries[0]);
+								double endIndex = d.length / _conf.getDominantFreqSampleRate() * Double.parseDouble(boundaries[1]);
+
+								double total = 0;
+								int count=0;
+								for (int ii = (int)startIndex; ii < Math.min(cs.length, (int)endIndex); ii++) {
+									total += cs[ii].abs();
+									count++;
+								}
+
+								bandMeanAmps.add(total/count);
+
+							} catch (NumberFormatException nfe){
+								throw new EventException("invalid number format in dominantfreq.mean-frequency-amplitude-bands '" + _conf.getMeanFrequencyAmplitudeBands() + "' - expecting hz ranges eg [1.5-5] [5-7.8]");
+							}
+						}
+					}
+
 					try {
 						bw.write(e.getName());
 
@@ -204,6 +231,9 @@ public class XCorrProcessor {
 							bw.write("\t" + Util.NF.format(f._frequency));
 
 						bw.write("\t" + Util.NF.format(e.getPeakAmp()));
+
+						for (Double meanAmp: bandMeanAmps)
+							bw.write("\t" + Util.NF.format(meanAmp));
 
 						bw.write("\n");
 

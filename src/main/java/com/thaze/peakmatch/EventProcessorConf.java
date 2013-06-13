@@ -1,11 +1,11 @@
 package com.thaze.peakmatch;
 
+import com.thaze.peakmatch.event.EventException;
+
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.Properties;
-
-import com.thaze.peakmatch.event.EventException;
 
 public class EventProcessorConf {
 
@@ -36,6 +36,7 @@ public class EventProcessorConf {
 	private final int dominantFreqTopFreqCount;
 
 	private final boolean normaliseEvents;
+	private final String meanFrequencyAmplitudeBands;
 
 	public EventProcessorConf(String confFile) throws EventException {
 
@@ -78,6 +79,8 @@ public class EventProcessorConf {
 		dominantFreqTopFreqCount = getInt(props, "dominantfreq.top-freq-count");
 
 		normaliseEvents = Boolean.parseBoolean(props.getProperty("normalise-events"));
+
+		meanFrequencyAmplitudeBands = props.getProperty("dominantfreq.mean-frequency-amplitude-bands");
 	}
 
 	static double getDouble(Properties props, String key) throws EventException {
@@ -198,6 +201,12 @@ public class EventProcessorConf {
 	public int getDominantFreqTopFreqCount() {
 		return dominantFreqTopFreqCount;
 	}
+
+
+	public String getMeanFrequencyAmplitudeBands() {
+		return meanFrequencyAmplitudeBands;
+	}
+
 
 	@Override
 	public String toString() {
