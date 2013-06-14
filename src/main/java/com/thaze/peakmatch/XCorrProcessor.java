@@ -23,6 +23,7 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.math.complex.Complex;
+import org.apache.commons.math.stat.descriptive.SummaryStatistics;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -174,10 +175,11 @@ public class XCorrProcessor {
 					double filterBelowIndex = d.length / _conf.getDominantFreqSampleRate() * _conf.getDominantFreqFilterBelowHz();
 					double filterAboveIndex = d.length / _conf.getDominantFreqSampleRate() * _conf.getDominantFreqFilterAboveHz();
 
+					SummaryStatistics stats = new SummaryStatistics();
 					for (int ii = (int)filterBelowIndex; ii < Math.min(cs.length, (int)filterAboveIndex); ii++) {
 
 						double abs = cs[ii].abs();
-//						ab[ii] = cs[ii].abs();
+						stats.addValue(abs);
 						freqs.add(new Freq(ii, abs, d.length));
 					}
 
@@ -231,6 +233,8 @@ public class XCorrProcessor {
 							bw.write("\t" + Util.NF.format(f._frequency));
 
 						bw.write("\t" + Util.NF.format(e.getPeakAmp()));
+
+						bw.write("\t" + Util.NF.format(stats.getStandardDeviation()));
 
 						for (Double meanAmp: bandMeanAmps)
 							bw.write("\t" + Util.NF.format(meanAmp));
