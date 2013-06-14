@@ -1,7 +1,11 @@
 package com.thaze.peakmatch;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.thaze.peakmatch.event.BasicEvent;
 import com.thaze.peakmatch.event.Event;
 import com.thaze.peakmatch.event.EventException;
+import com.thaze.peakmatch.event.EventPair;
 import com.thaze.peakmatch.event.FFTPreprocessedEvent;
 import org.apache.commons.math.complex.Complex;
 import org.apache.commons.math.transform.FastFourierTransformer;
@@ -10,8 +14,12 @@ import org.joda.time.chrono.ISOChronology;
 import org.joda.time.format.PeriodFormatter;
 import org.joda.time.format.PeriodFormatterBuilder;
 
+import java.io.File;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public final class Util {
 	
@@ -116,4 +124,86 @@ public final class Util {
 	public static String periodToString(long ms){
 		return PF.print(new Period(ms, ISOChronology.getInstanceUTC()));
 	}
+
+	public interface EventAction{ void run(Event e) throws EventException;}
+
+	public static void executePerEvent(EventProcessorConf conf, EventAction ea) {
+		File[] fs = conf.getDataset().listFiles();
+
+		StateLogger sl = new StateLogger();
+		int count = 0;
+		for (File f : fs){
+			try{
+				Event e = new BasicEvent(f, conf);
+
+				if (++count % 1000 == 0)
+					System.out.println(sl.state(count, fs.length));
+
+				ea.run(e);
+
+			} catch (EventException e1){
+				System.err.println("failed to load: " + e1.getMessage());
+			}
+		}
+	}
+
+	public static List<Event> loadAllEvents(EventProcessorConf conf) throws EventException {
+
+		System.out.println("loading events ...");
+
+		List<Event> data = Lists.newArrayList();
+		boolean fail=false;
+		File[] fs = conf.getDataset().listFiles();
+
+		StateLogger sl = new StateLogger();
+		for (File f : fs){
+			try{
+				Event e = new BasicEvent(f, conf);
+				data.add(e);
+
+				if (data.size() % 1000 == 0){
+					System.out.println(sl.state(data.size(), fs.length));
+					System.gc();
+				}
+			} catch (EventException e1){
+				System.err.println("failed to load: " + e1.getMessage());
+				fail=true; // don't fail immediately, finish loading events and then bug out
+			}
+		}
+
+		if (fail)
+			throw new EventException("not all files validated");
+
+		System.out.println("loaded " + data.size() + " events");
+
+		return data;
+	}
+
+
+	public static Map<String, Double> fullFFTXCorr(EventProcessorConf conf, final Set<String> candidateKeys, final List<Event> events) {
+
+		final Map<String, Double> finalMatches = Maps.newHashMap();
+
+		for (int ii = 0; ii < events.size(); ii++) {
+			final Event a = events.get(ii);
+
+			for (int jj = ii+1; jj < events.size(); jj++) {
+				final Event b = events.get(jj);
+
+				String key = new EventPair(a, b).getKey();
+				if (!candidateKeys.contains(key))
+					continue;
+
+				double[] xcorr = Util.fftXCorr(new FFTPreprocessedEvent(a), new FFTPreprocessedEvent(b));
+				double best = Util.getHighest(xcorr);
+
+				if (best > conf.getFinalThreshold())
+					finalMatches.put(key, best);
+			}
+		}
+
+		return finalMatches;
+	}
+
+
 }
