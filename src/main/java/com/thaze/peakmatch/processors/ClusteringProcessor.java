@@ -14,20 +14,12 @@ import fj.P;
 import fj.P2;
 import fj.P3;
 import fj.data.Array;
-import net.sf.javaml.clustering.Clusterer;
-import net.sf.javaml.clustering.FarthestFirst;
-import net.sf.javaml.core.Dataset;
-import net.sf.javaml.core.DefaultDataset;
-import net.sf.javaml.core.DenseInstance;
-import net.sf.javaml.core.Instance;
-import org.apache.commons.lang.ArrayUtils;
 import org.jgrapht.UndirectedGraph;
 import org.jgrapht.alg.ConnectivityInspector;
 import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.graph.SimpleGraph;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -49,48 +41,48 @@ public class ClusteringProcessor implements Processor {
 	}
 
 //	@Override
-	public void processJavaML() throws EventException {
-
-		final Dataset data = new DefaultDataset();
-
-		Util.executePerEvent(_conf, new Util.EventAction() {
-			@Override
-			public void run(Event event) throws EventException {
-
-				EventAndFeatures eventAndFeatures = new EventAndFeatures(_conf, event);
-
-				Collection<Double> values = eventAndFeatures._normalisedBands.values();
-				double[] att = ArrayUtils.toPrimitive(values.toArray(new Double[0]));
-
-				data.add(new DenseInstance(att, eventAndFeatures));
-			}
-		});
-
-//		KNearestNeighbors knn = new KNearestNeighbors(5);
-//		knn.buildClassifier(data);
-//		knn.classDistribution();
-
-
-//		Clusterer c = new IterativeKMeans(3, 25, 100, new CosineDistance(), new SumOfSquaredErrors());//, new CosineDistance());
-//		Clusterer c = new Cobweb(0.75, 0.1);
-//		Clusterer c = new DensityBasedSpatialClustering();
-		Clusterer c = new FarthestFirst();
-
-		Dataset[] clusters = c.cluster(data);
-
-		int count=0;
-
-		for (Dataset cluster: clusters){
-			for (Instance i: cluster){
-				System.out.println(i.classValue());
-				count++;
-			}
-
-			System.out.println();
-		}
-
-		System.out.println(count);
-	}
+//	public void processJavaML() throws EventException {
+//
+//		final Dataset data = new DefaultDataset();
+//
+//		Util.executePerEvent(_conf, new Util.EventAction() {
+//			@Override
+//			public void run(Event event) throws EventException {
+//
+//				EventAndFeatures eventAndFeatures = new EventAndFeatures(_conf, event);
+//
+//				Collection<Double> values = eventAndFeatures._normalisedBands.values();
+//				double[] att = ArrayUtils.toPrimitive(values.toArray(new Double[0]));
+//
+//				data.add(new DenseInstance(att, eventAndFeatures));
+//			}
+//		});
+//
+////		KNearestNeighbors knn = new KNearestNeighbors(5);
+////		knn.buildClassifier(data);
+////		knn.classDistribution();
+//
+//
+////		Clusterer c = new IterativeKMeans(3, 25, 100, new CosineDistance(), new SumOfSquaredErrors());//, new CosineDistance());
+////		Clusterer c = new Cobweb(0.75, 0.1);
+////		Clusterer c = new DensityBasedSpatialClustering();
+//		Clusterer c = new FarthestFirst();
+//
+//		Dataset[] clusters = c.cluster(data);
+//
+//		int count=0;
+//
+//		for (Dataset cluster: clusters){
+//			for (Instance i: cluster){
+//				System.out.println(i.classValue());
+//				count++;
+//			}
+//
+//			System.out.println();
+//		}
+//
+//		System.out.println(count);
+//	}
 
 	public void process() throws EventException {
 
