@@ -75,12 +75,12 @@
 			<systemPath>${basedir}/lib/chronicle-1.2-SNAPSHOT.jar</systemPath> 
 			-->
 		</dependency>
-
+<!--
         <dependency>
             <groupId>edu.berkeley.compbio</groupId>
             <artifactId>ml</artifactId>
             <version>0.9</version>
-        </dependency>
+        </dependency>-->
         <dependency>
             <groupId>org.functionaljava</groupId>
             <artifactId>fj</artifactId>
