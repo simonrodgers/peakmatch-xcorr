@@ -37,7 +37,8 @@ public class DominantFreqProcessor implements Processor {
 
 		Freq(int index, double abs, int sampleCount){
 			_abs=abs;
-			_frequency = (double)index * _conf.getDominantFreqSampleRate() / sampleCount;
+//			_frequency = (double)index * _conf.getDominantFreqSampleRate() / sampleCount;
+			_frequency = Util.frequencyFromFFTPosition(index, _conf.getDominantFreqSampleRate(), sampleCount);
 		}
 
 		@Override

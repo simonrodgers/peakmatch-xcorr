@@ -32,8 +32,6 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class PostProcessProcessor implements Processor {
 
-
-
 	private final EventProcessorConf _conf;
 
 	public PostProcessProcessor(EventProcessorConf conf) throws EventException {

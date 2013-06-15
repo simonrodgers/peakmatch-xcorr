@@ -8,6 +8,7 @@ import com.thaze.peakmatch.event.EventException;
 import com.thaze.peakmatch.event.EventPair;
 import com.thaze.peakmatch.event.FFTPreprocessedEvent;
 import org.apache.commons.math.complex.Complex;
+import org.apache.commons.math.stat.descriptive.SummaryStatistics;
 import org.apache.commons.math.transform.FastFourierTransformer;
 import org.joda.time.Period;
 import org.joda.time.chrono.ISOChronology;
@@ -17,6 +18,7 @@ import org.joda.time.format.PeriodFormatterBuilder;
 import java.io.File;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -205,5 +207,62 @@ public final class Util {
 		return finalMatches;
 	}
 
+	public static double frequencyFromFFTPosition(int index, int sampleRate, int sampleCount){
+		return (double)index * sampleRate / sampleCount;
+	}
+
+	public static Map<Double, Double> getBandMeans(double[] d, EventProcessorConf conf) {
+
+		// zero pad to next power of two
+		int len = Util.nextPowerOfTwo(d.length * 2);
+		d = Arrays.copyOf(d, len);
+
+		Complex[] cs = Util.FFTtransform(d);
+		cs = Arrays.copyOf(cs, cs.length / 2); // second half is an inverted artifact of the transform, throw it away
+
+		double currentBand = -1;
+		SummaryStatistics currentSS = null;
+		Map<Double, SummaryStatistics> bands = Maps.newLinkedHashMap();
+
+		double filterBelowIndex = d.length / conf.getDominantFreqSampleRate() * conf.getDominantFreqFilterBelowHz();
+		double filterAboveIndex = d.length / conf.getDominantFreqSampleRate() * conf.getDominantFreqFilterAboveHz();
+
+//		for (int ii=0; ii<cs.length; ii++){
+		for (int ii = (int) filterBelowIndex; ii < Math.min(cs.length, (int) filterAboveIndex); ii++) {
+			double abs = cs[ii].abs();
+			double freq = Util.frequencyFromFFTPosition(ii, conf.getDominantFreqSampleRate(), d.length);
+
+			double bandStart = conf.getFrequencyBandHz() * (int)(freq / conf.getFrequencyBandHz());
+
+			if (bandStart > currentBand) {
+				currentSS = new SummaryStatistics();
+				currentBand = bandStart;
+				bands.put(bandStart, currentSS);
+			}
+
+			currentSS.addValue(abs);
+		}
+
+		Map<Double, Double> bandMeans = Maps.newLinkedHashMap();
+		for (Map.Entry<Double, SummaryStatistics> e: bands.entrySet()){
+			bandMeans.put(e.getKey(), e.getValue().getMean());
+		}
+		return bandMeans;
+	}
+
+	// normalise to unit vector
+	public static Map<Double, Double> normaliseBandMeans(Map<Double, Double> bandMeans ){
+
+		double sumsquares = 0d;
+		for (double mean : bandMeans.values())
+			sumsquares += mean * mean;
+		double vectorLength = Math.sqrt(sumsquares);
+
+		Map<Double, Double> normalisedBands = Maps.newLinkedHashMap();
+		for (Map.Entry<Double, Double> e : bandMeans.entrySet())
+			normalisedBands.put(e.getKey(), e.getValue() / vectorLength);
+
+		return normalisedBands;
+	}
 
 }

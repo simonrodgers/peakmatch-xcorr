@@ -144,6 +144,10 @@ Parameters are set in the config file `xcorr.conf`:
 * `dominantfreq.filter-below-hz` - filter out all frequencies below this parameter
 * `dominantfreq.filter-above-hz` - filter out all frequencies above this parameter
 * `dominantfreq.sample-rate` - sample rate (hz) of the event (eg 50)
+Plot1D / Plot2D
+---------------
+Plot all events graphically to stdout in
+
 * `dominantfreq.top-freq-count` - how many frequencies to emit per event file (eg 5)
 
 inputs:
@@ -151,6 +155,13 @@ inputs:
 
 outputs:
 * `xcorr.dominantfreq` - one line per file, tab-separated - filename followed by the top frequencies (in hz)
+
+Plot1D / Plot2D
+---------------
+Plot frequency graphs of all events in `dataset.full` graphically to stdout in
+
+PLOT1D - plot frequency of entire sample
+
 
 Data format
 -----------
@@ -224,3 +235,18 @@ Usage
 Change 2048M to whatever memory limits you want to give the process - but do not use more than necessary for the FFT precache and post-process steps, the system page cache should be given as much as possible (see size of fftcache.chronicle.data file after FFT precache)
 
 Note: must be run on a 64-bit system if running on more than a few thousand events, or the FFT precache and post-process steps will exhaust addressable space.
+
+Command-line shortcuts
+----------------------
+
+plot named events (absolute file or relative to dataset.full) to stdout.
+
+    java -jar target/peakmatch-jar-with-dependencies.jar -plot 2d|1d|<empty=tiny> -events event1.dat event2.dat event3.dat ...
+
+perform xcorr of two events and write to stdout
+
+    java -jar target/peakmatch-jar-with-dependencies.jar -xcorr -events event1.dat event2.dat
+
+usage:
+
+	java -jar target/peakmatch-jar-with-dependencies.jar -help

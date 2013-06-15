@@ -21,6 +21,7 @@
 	</properties>
 
 	<dependencies>
+
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-math</artifactId>
@@ -75,7 +76,25 @@
 			-->
 		</dependency>
 
-	</dependencies>
+        <dependency>
+            <groupId>edu.berkeley.compbio</groupId>
+            <artifactId>ml</artifactId>
+            <version>0.9</version>
+        </dependency>
+        <dependency>
+            <groupId>org.functionaljava</groupId>
+            <artifactId>fj</artifactId>
+            <version>3.0</version>
+        </dependency>
+        <dependency>
+            <groupId>jgrapht</groupId>
+            <artifactId>jgrapht</artifactId>
+            <version>0.8.1</version>
+        </dependency>
+
+
+
+    </dependencies>
 
 	<build>
 		<plugins>

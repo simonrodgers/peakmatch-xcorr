@@ -27,6 +27,10 @@ public class BasicEvent implements Event {
 
 	public BasicEvent(File file, EventProcessorConf conf) throws EventException {
 
+		// treat as relative to dataset.full if not absolute path
+		if (!file.isAbsolute())
+			file = new File(conf.getDataset(), file.getPath());
+
 		String line = null;
 		
 		try (BufferedReader br = new BufferedReader(new FileReader(file))) {

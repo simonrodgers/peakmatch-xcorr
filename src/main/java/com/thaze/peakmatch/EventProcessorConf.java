@@ -38,6 +38,17 @@ public class EventProcessorConf {
 	private final boolean normaliseEvents;
 	private final String meanFrequencyAmplitudeBands;
 
+
+	private final double frequencyBandHz;
+	private final double plot2dBucketDurationSec;
+	private final PlotGradient plot2dGradient;
+	private final boolean plot1dTiny;
+
+	private final int clusterK;
+	private final double clusterEta;
+	private final String clusterCentres;
+	private final double clusterCentreThreshold;
+
 	public EventProcessorConf(String confFile) throws EventException {
 
 		Properties props = getProps(confFile);
@@ -81,6 +92,22 @@ public class EventProcessorConf {
 		normaliseEvents = Boolean.parseBoolean(props.getProperty("normalise-events"));
 
 		meanFrequencyAmplitudeBands = props.getProperty("dominantfreq.mean-frequency-amplitude-bands");
+
+		frequencyBandHz = getDouble(props, "frequency.band-hz");
+		plot2dBucketDurationSec = getDouble(props, "plot.2d.bucket-duration-sec");
+
+		try {
+			plot2dGradient = PlotGradient.valueOf(props.getProperty("plot.2d.gradient"));
+		} catch (IllegalArgumentException e) {
+			throw new EventException("invalid gradient value '" + props.getProperty("plot2d.gradient") + "'");
+		}
+		plot1dTiny = Boolean.parseBoolean(props.getProperty("plot.1d.tiny"));
+
+		clusterK = getInt(props, "cluster.k");
+		clusterEta = getDouble(props, "cluster.eta");
+		clusterCentres = props.getProperty("cluster.centres", ""); // can be unset = no centres
+		clusterCentreThreshold = getDouble(props, "cluster.centre-threshold", 0);
+
 	}
 
 	static double getDouble(Properties props, String key) throws EventException {
@@ -93,6 +120,18 @@ public class EventProcessorConf {
 			throw new EventException("invalid double value for key " + key + ": " + s);
 		}
 	}
+
+	static double getDouble(Properties props, String key, double def) throws EventException {
+		String s = props.getProperty(key);
+		if (null == s)
+			return def;
+		try {
+			return Double.parseDouble(s);
+		} catch (NumberFormatException e) {
+			return def;
+		}
+	}
+
 
 	static int getInt(Properties props, String key) throws EventException {
 		String s = props.getProperty(key);
@@ -110,9 +149,27 @@ public class EventProcessorConf {
 	}
 
 	public static enum Mode {
-		ANALYSE, PEAKMATCH, FFTPRECACHE, POSTPROCESS, BRUTEFORCE, FFTDOMINANTFREQ
+		ANALYSE, PEAKMATCH, FFTPRECACHE, POSTPROCESS, BRUTEFORCE, FFTDOMINANTFREQ, PLOT2D, PLOT1D, CLUSTER
 	}
 
+	public static enum PlotGradient {
+		// █ ▆ ▃ etc
+		VERTICAL	(new char[]{' ', 0x2581, 0x2582, 0x2583, 0x2584, 0x2585, 0x2586, 0x2587, 0x2588}),
+		// █ ▉ ▌ ▎etc
+		HORIZONTAL	(new char[]{' ', 0x258F, 0x258E, 0x258D, 0x258C, 0x258B, 0x258A, 0x2589, 0x2588}),
+		// █ ▓ ░
+		SHADED		(new char[]{' ', 0x2591, 0x2592, 0x2593, 0x2588});
+
+		char[] _chars;
+
+		public char[] getChars(){
+			return _chars;
+		}
+
+		PlotGradient(char[] chars){
+			_chars=chars;
+		}
+	}
 
 	public File getDataset() {
 		return dataset;
@@ -207,52 +264,60 @@ public class EventProcessorConf {
 		return meanFrequencyAmplitudeBands;
 	}
 
-
-	@Override
-	public String toString() {
-		return 	"dataset=" + dataset +
-				"\nsampledataset=" + sampledataset +
-				"\ntopKPeaksToMatch=" + topKPeaksToMatch +
-				"\nsamplingStride=" + samplingStride +
-				"\ntopAmplitudeThreshold=" + topAmplitudeThreshold +
-				"\ncandidateThreshold=" + candidateThreshold +
-				"\nfinalThreshold=" + finalThreshold +
-				"\nexpectedFileLineCount=" + expectedFileLineCount +
-				"\nmode=" + mode +
-				"\nverbose=" + verbose +
-				"\nthreads=" + threads +
-				"\nfftMemoryCacheSize=" + fftMemoryCacheSize +
-				"\ncrop=" + crop +
-				"\ncropMinPeakRange=" + cropMinPeakRange +
-				"\ncropMaxPeakRange=" + cropMaxPeakRange +
-				"\ncropWindowBeforePeak=" + cropWindowBeforePeak +
-				"\ncropWindowAfterPeak=" + cropWindowAfterPeak +
-				"\ndominantFreqSampleRate=" + dominantFreqSampleRate +
-				"\ndominantFreqBandWidth=" + dominantFreqBandWidth +
-				"\ndominantFreqFilterBelowHz=" + dominantFreqFilterBelowHz +
-				"\ndominantFreqFilterAboveHz=" + dominantFreqFilterAboveHz +
-				"\ndominantFreqTopFreqCount=" + dominantFreqTopFreqCount;
+	public double getFrequencyBandHz() {
+		return frequencyBandHz;
 	}
+	public double getPlot2dBucketDurationSec() {
+		return plot2dBucketDurationSec;
+	}
+	public PlotGradient getPlot2dGradient() {
+		return plot2dGradient;
+	}
+	public boolean isPlot1dTiny() {
+		return plot1dTiny;
+	}
+
+	public int getClusterK() {
+		return clusterK;
+	}
+	public double getClusterEta() {
+		return clusterEta;
+	}
+	public String getClusterCentres() {
+		return clusterCentres;
+	}
+
+	public double getClusterCentreThreshold() {
+		return clusterCentreThreshold;
+	}
+
+
+
 
 //	@Override
 //	public String toString() {
-//		return "\tdataset: \t\t" + dataset + "\n"
-//				+ "\tsampledataset: \t\t" + sampledataset + "\n"
-//				+ "\tTopKPeaksToMatch: \t" + topKPeaksToMatch + "\n"
-//				+ "\tsamplingStride: \t" + samplingStride + "\n"
-//				+ "\ttopAmplitudeThreshold: \t" + topAmplitudeThreshold + "\n"
-//				+ "\tcandidateThreshold: \t" + candidateThreshold + "\n"
-//				+ "\tfinalThreshold: \t" + finalThreshold + "\n"
-//				+ "\texpectedFileLineCount: \t" + expectedFileLineCount + "\n"
-//				+ "\tmode: \t\t\t" + mode + "\n"
-//				+ "\tverbose: \t\t" + verbose + "\n"
-//				+ "\tthreads: \t\t" + threads + "\n"
-//				+ "\tfftMemoryCacheSize: \t" + fftMemoryCacheSize + "\n"
-//				+ "\tdominantFreqBandWidth: \t" + dominantFreqBandWidth + "\n"
-//				+ "\tdominantFreqFilterBelowHz: \t" + dominantFreqFilterBelowHz + "\n"
-//				+ "\tdominantFreqSampleRate: \t" + dominantFreqSampleRate + "\n"
-//				+ "\tdominantFreqTopFreqCount: \t" + dominantFreqTopFreqCount + "\n"
-//				;
+//		return 	"dataset=" + dataset +
+//				"\nsampledataset=" + sampledataset +
+//				"\ntopKPeaksToMatch=" + topKPeaksToMatch +
+//				"\nsamplingStride=" + samplingStride +
+//				"\ntopAmplitudeThreshold=" + topAmplitudeThreshold +
+//				"\ncandidateThreshold=" + candidateThreshold +
+//				"\nfinalThreshold=" + finalThreshold +
+//				"\nexpectedFileLineCount=" + expectedFileLineCount +
+//				"\nmode=" + mode +
+//				"\nverbose=" + verbose +
+//				"\nthreads=" + threads +
+//				"\nfftMemoryCacheSize=" + fftMemoryCacheSize +
+//				"\ncrop=" + crop +
+//				"\ncropMinPeakRange=" + cropMinPeakRange +
+//				"\ncropMaxPeakRange=" + cropMaxPeakRange +
+//				"\ncropWindowBeforePeak=" + cropWindowBeforePeak +
+//				"\ncropWindowAfterPeak=" + cropWindowAfterPeak +
+//				"\ndominantFreqSampleRate=" + dominantFreqSampleRate +
+//				"\ndominantFreqBandWidth=" + dominantFreqBandWidth +
+//				"\ndominantFreqFilterBelowHz=" + dominantFreqFilterBelowHz +
+//				"\ndominantFreqFilterAboveHz=" + dominantFreqFilterAboveHz +
+//				"\ndominantFreqTopFreqCount=" + dominantFreqTopFreqCount;
 //	}
 
 	private static Properties getProps(String filename) throws EventException {
