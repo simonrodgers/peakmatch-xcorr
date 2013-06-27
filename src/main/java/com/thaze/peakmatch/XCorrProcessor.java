@@ -22,6 +22,9 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.Writer;
 
 /**
  * @author Simon Rodgers
@@ -67,6 +70,7 @@ public class XCorrProcessor {
 			options.addOption(new Option("xcorr", "cross-correlate two events"));
 			options.addOption(OptionBuilder.withArgName("filenames ...").hasArgs(Option.UNLIMITED_VALUES).withDescription("event filenames - absolute or relative to dataset.full").create("events"));
 			options.addOption(OptionBuilder.withArgName("dimension").hasOptionalArg().withDescription("plot events, with dimension 1d/2d/*tiny1d").create("plot"));
+			options.addOption(new Option("fftdom", "perform FFTDOMINANTFREQ on events"));
 
 			CommandLineParser parser = new BasicParser();
 			CommandLine cmd = parser.parse(options, args);
@@ -100,6 +104,18 @@ public class XCorrProcessor {
 				double best = Util.getHighest(xcorr);
 
 				System.out.println(Util.NF.format(best));
+			} else if (cmd.hasOption("events") && cmd.hasOption("fftdom")) {
+
+				String[] events = cmd.getOptionValues("events");
+
+				try (Writer w = new PrintWriter(System.out)){
+					for (String eventName: events){
+						Event event = new BasicEvent(new File(eventName), conf);
+						DominantFreqProcessor.handleEvent(conf, event, w);
+						w.flush();
+					}
+				}
+
 			} else {
 				HelpFormatter hf = new HelpFormatter();
 				hf.printHelp(100, "java -jar peakmatch.jar",null, options, null, true);
@@ -107,6 +123,9 @@ public class XCorrProcessor {
 
 		} catch (ParseException e) {
 			System.err.println("error parsing arguments");
+			System.err.println(e.getMessage());
+		} catch (IOException e) {
+			System.err.println("error writing");
 			System.err.println(e.getMessage());
 		}
 	}
