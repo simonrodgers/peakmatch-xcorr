@@ -273,7 +273,7 @@ public class AnalyseProcessor implements Processor {
 			}
 		}
 
-		if (fail)
+		if (fail && !_conf.isContinueOnError())
 			throw new EventException("not all files validated");
 
 		System.out.println("loaded " + data.size() + " sample events");

@@ -173,7 +173,7 @@ public final class Util {
 			}
 		}
 
-		if (fail)
+		if (fail && !conf.isContinueOnError())
 			throw new EventException("not all files validated");
 
 		System.out.println("loaded " + data.size() + " events");

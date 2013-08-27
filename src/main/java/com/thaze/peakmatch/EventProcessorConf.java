@@ -21,6 +21,7 @@ public class EventProcessorConf {
 	private final boolean verbose;
 	private final int threads;
 	private final int fftMemoryCacheSize;
+	private final boolean continueOnError;
 
 	private final boolean crop;
 
@@ -49,6 +50,7 @@ public class EventProcessorConf {
 	private final String clusterCentres;
 	private final double clusterCentreThreshold;
 
+
 	public EventProcessorConf(String confFile) throws EventException {
 
 		Properties props = getProps(confFile);
@@ -67,6 +69,7 @@ public class EventProcessorConf {
 		candidateThreshold = getDouble(props, "candidate-threshold");
 		finalThreshold = getDouble(props, "final-threshold");
 		expectedFileLineCount = getInt(props, "expected-file-line-count");
+		continueOnError = Boolean.parseBoolean(props.getProperty("continue-on-error"));
 
 		try {
 			mode = Mode.valueOf(props.getProperty("mode"));
@@ -291,7 +294,9 @@ public class EventProcessorConf {
 		return clusterCentreThreshold;
 	}
 
-
+	public boolean isContinueOnError() {
+		return continueOnError;
+	}
 
 
 //	@Override
