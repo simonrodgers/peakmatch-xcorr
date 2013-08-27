@@ -55,7 +55,7 @@ public class DominantFreqProcessor implements Processor {
 		}
 	}
 
-	public static void handleEvent(final EventProcessorConf conf, Event e, Writer bw ) throws EventException {
+	public static void handleEvent(final EventProcessorConf conf, Event e, Writer writer ) throws EventException {
 
 		class Freq implements Comparable<Freq> {
 
@@ -140,19 +140,19 @@ public class DominantFreqProcessor implements Processor {
 		}
 
 		try {
-			bw.write(e.getName());
+			writer.write(e.getName());
 
 			for (Freq f : topFreqs)
-				bw.write("\t" + Util.NF.format(f._frequency));
+				writer.write("\t" + Util.NF.format(f._frequency));
 
-			bw.write("\t" + Util.NF.format(e.getPeakAmp()));
+			writer.write("\t" + Util.NF.format(e.getPeakAmp()));
 
-			bw.write("\t" + Util.NF.format(stats.getStandardDeviation()));
+			writer.write("\t" + Util.NF.format(stats.getStandardDeviation()));
 
 			for (Double meanAmp : bandMeanAmps)
-				bw.write("\t" + Util.NF.format(meanAmp));
+				writer.write("\t" + Util.NF.format(meanAmp));
 
-			bw.write("\n");
+			writer.write("\n");
 
 		} catch (IOException e1) {
 			throw new EventException("failed to write: " + e1);

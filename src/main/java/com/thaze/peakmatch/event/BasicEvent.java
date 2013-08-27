@@ -116,7 +116,7 @@ public class BasicEvent implements Event {
 		_peakAmp = peakNormalisedAmp * rootSumOfSquares;
 
 		if (aPeaks.size() < conf.getTopKPeaksToMatch())
-			throw new EventException(getName() + " doesn't have enough peaks");
+			throw new EventException(getName() + " doesn't have enough peaks (" + aPeaks.size() + " found, " + conf.getTopKPeaksToMatch() + " required)");
 
 		// sort by amplitude descending
 		Collections.sort(aPeaks, new Comparator<Tuple<Integer, Double>>() {

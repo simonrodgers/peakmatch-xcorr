@@ -40,50 +40,6 @@ public class ClusteringProcessor implements Processor {
 		_conf = conf;
 	}
 
-//	@Override
-//	public void processJavaML() throws EventException {
-//
-//		final Dataset data = new DefaultDataset();
-//
-//		Util.executePerEvent(_conf, new Util.EventAction() {
-//			@Override
-//			public void run(Event event) throws EventException {
-//
-//				EventAndFeatures eventAndFeatures = new EventAndFeatures(_conf, event);
-//
-//				Collection<Double> values = eventAndFeatures._normalisedBands.values();
-//				double[] att = ArrayUtils.toPrimitive(values.toArray(new Double[0]));
-//
-//				data.add(new DenseInstance(att, eventAndFeatures));
-//			}
-//		});
-//
-////		KNearestNeighbors knn = new KNearestNeighbors(5);
-////		knn.buildClassifier(data);
-////		knn.classDistribution();
-//
-//
-////		Clusterer c = new IterativeKMeans(3, 25, 100, new CosineDistance(), new SumOfSquaredErrors());//, new CosineDistance());
-////		Clusterer c = new Cobweb(0.75, 0.1);
-////		Clusterer c = new DensityBasedSpatialClustering();
-//		Clusterer c = new FarthestFirst();
-//
-//		Dataset[] clusters = c.cluster(data);
-//
-//		int count=0;
-//
-//		for (Dataset cluster: clusters){
-//			for (Instance i: cluster){
-//				System.out.println(i.classValue());
-//				count++;
-//			}
-//
-//			System.out.println();
-//		}
-//
-//		System.out.println(count);
-//	}
-
 	public void process() throws EventException {
 
 		System.out.println("clustering ...");
