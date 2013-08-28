@@ -30,16 +30,25 @@ public class FFTPrecacheProcessor implements Processor {
 		MMappedFFTCache c = new MMappedFFTCache(MMappedFFTCache.ReadWrite.WRITE);
 
 		File[] fs = _conf.getDataset().listFiles();
+		boolean fail=false;
 
 		int count = 0;
 		StateLogger sl = new StateLogger();
 		for (File f : fs){
-			Event e = new BasicEvent(f, _conf);
-			c.addToCache(new FFTPreprocessedEvent(e));
+			try{
+				Event e = new BasicEvent(f, _conf);
+				c.addToCache(new FFTPreprocessedEvent(e));
+			} catch (EventException e1){
+				System.err.println("failed to load: " + e1.getMessage());
+				fail=true; // don't fail immediately, finish all events
+			}
 
 			if (++count % 1000 == 0)
 				System.out.println(sl.state(count, fs.length));
 		}
+
+		if (fail && !_conf.isContinueOnError())
+			throw new EventException("not all files validated");
 
 		c.commitIndex();
 
