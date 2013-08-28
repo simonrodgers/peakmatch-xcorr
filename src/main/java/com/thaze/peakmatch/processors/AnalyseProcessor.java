@@ -54,7 +54,7 @@ public class AnalyseProcessor implements Processor {
 
 		System.out.println();
 		System.out.println("*** Accuracy analysis ***");
-		System.out.println(events.size() + " events sampled -> " + events.size()*events.size()/2 + " distinct pairs");
+		System.out.println(events.size() + " events sampled -> " + (long)events.size()*(long)events.size()/2 + " distinct pairs");
 		System.out.println(fullAboveThreshold.size() + " definite XCorr event pairs above final threshold");
 		System.out.println(candidates.size() + " candidates found above candidate threshold");
 
@@ -99,8 +99,8 @@ public class AnalyseProcessor implements Processor {
 
 		MapCollector candidates = new MapCollector();
 
-		final int samplePairs = events.size()*events.size()/2;
-		final long allPairs = _conf.countAllEvents()*_conf.countAllEvents()/2;
+		final long samplePairs = (long)events.size()*(long)events.size()/2;
+		final long allPairs = (long)_conf.countAllEvents()*(long)_conf.countAllEvents()/2;
 
 		long extrapolatedForAllMS;
 
@@ -112,12 +112,11 @@ public class AnalyseProcessor implements Processor {
 			PeakMatchRunner.peakmatchCandidates(_conf, events, candidates, null);
 			double tPM = System.currentTimeMillis()-t0;
 
-			int pairs = events.size()*events.size()/2;
-			double eachMicrosec = 1000*tPM/pairs;
+			double eachMicrosec = 1000*tPM/samplePairs;
 			double perSec = 1000000 / eachMicrosec;
 			extrapolatedForAllMS = (long)(allPairs * eachMicrosec / 1000);
 
-			System.out.println(events.size() + " events sampled -> " + pairs + " distinct pairs");
+			System.out.println(events.size() + " events sampled -> " + samplePairs + " distinct pairs");
 			System.out.println(tPM + " ms, " + (long)eachMicrosec + " microsec each, " + (long)perSec + "/sec");
 
 			System.out.println("Peakmatch method - extrapolation to all events (" + allPairs + " distinct pairs of " + _conf.countAllEvents() + " events): " + Util.periodToString(extrapolatedForAllMS));
@@ -243,7 +242,7 @@ public class AnalyseProcessor implements Processor {
 				long tMS = System.currentTimeMillis()-t0;
 				long eachMicrosec = 1000*tMS/count;
 				long perSec = 1000000 / eachMicrosec;
-				long allPairs = _conf.countAllEvents()*_conf.countAllEvents()/2;
+				long allPairs = (long)_conf.countAllEvents()*(long)_conf.countAllEvents()/2;
 				long extrapolatedForAllMS = allPairs * eachMicrosec / 1000;
 				System.out.println("generated and cached " + count + " full FFT xcorr: " + tMS/1000 + " sec, " + eachMicrosec + "microsec each, " + perSec + "/sec");
 				System.out.println("extrapolation to full FFT xcorr for " + allPairs + " distinct pairs of " + _conf.countAllEvents() + " events: " + Util.periodToString(extrapolatedForAllMS));
